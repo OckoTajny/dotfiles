@@ -105,4 +105,6 @@ alias ohmyzsh="mate ~/.oh-my-zsh"
 
 
 export PATH="$PATH:$HOME/.local/share/JetBrains/Toolbox/scripts"
-alias wipe='cliphist wipe && notify-send "Clipboard vymazán"'
+alias wipe='cliphist wipe && notify-send "Clipboard emptied"'
+alias update='sudo pacman -Syu'
+alias hypr-update='hyprpm update'
