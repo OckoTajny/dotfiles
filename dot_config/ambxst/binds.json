@@ -191,12 +191,9 @@
                 },
                 "id": "ambxst.tmux"
             },
-            "key": "F24",
+            "key": "T",
             "modifiers": [
-                "SUPER",
-                "CTRL",
-                "ALT",
-                "SHIFT"
+                "SUPER"
             ]
         },
         "wallpapers": {
@@ -222,7 +219,7 @@
                     ]
                 }
             ],
-            "enabled": false,
+            "enabled": true,
             "keys": [
                 {
                     "key": "C",
@@ -1017,7 +1014,7 @@
             "enabled": true,
             "keys": [
                 {
-                    "key": "Y",
+                    "key": "Z",
                     "modifiers": [
                         "SUPER"
                     ]

@@ -6,8 +6,8 @@ inner = 2
 outer = 4
 [appearance.border]
 width = 2
-active_color = "rgb(ddb9f7)"
-inactive_color = "rgb(171617)"
+active_color = "rgb(ffb3ae)"
+inactive_color = "rgb(302625)"
 rounding = 16
 [appearance.opacity]
 active = 1.0
@@ -75,8 +75,8 @@ flags = ""
 enabled = true
 
 [[keybinds]]
-modifiers = ["SUPER", "CTRL", "ALT", "SHIFT"]
-key = "F24"
+modifiers = ["SUPER"]
+key = "T"
 dispatcher = "exec"
 argument = "ambxst run tmux"
 flags = ""
@@ -167,6 +167,14 @@ modifiers = ["SUPER", "CTRL", "ALT"]
 key = "B"
 dispatcher = "exec"
 argument = "ambxst quit"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER"]
+key = "C"
+dispatcher = "killactive"
+argument = ""
 flags = ""
 enabled = true
 
@@ -444,7 +452,7 @@ enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER"]
-key = "Y"
+key = "Z"
 dispatcher = "workspace"
 argument = "-1"
 flags = ""
