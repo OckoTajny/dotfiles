@@ -749,8 +749,8 @@ enabled = true
 [[keybinds]]
 modifiers = ["SUPER", "SHIFT"]
 key = "Down"
-dispatcher = "layoutmsg"
-argument = "movewindowto d"
+dispatcher = "movewindow"
+argument = "d"
 flags = ""
 enabled = true
 
@@ -765,8 +765,8 @@ enabled = true
 [[keybinds]]
 modifiers = ["SUPER", "SHIFT"]
 key = "j"
-dispatcher = "layoutmsg"
-argument = "movewindowto d"
+dispatcher = "movewindow"
+argument = "d"
 flags = ""
 enabled = true
 
