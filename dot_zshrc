@@ -115,3 +115,6 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # OpenClaw Completion
 [ -f "/home/ocko/.openclaw/completions/openclaw.zsh" ] && source "/home/ocko/.openclaw/completions/openclaw.zsh"
 export PATH="$HOME/.local/bin:$PATH"
+
+# npm global bin (agent-browser CLI)
+export PATH="$HOME/.npm-global/bin:$PATH"
