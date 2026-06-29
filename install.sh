@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # dotswap installer — clone the rice profiles + tools onto a fresh machine.
 # Usage: curl -fsSL https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh | bash
-set -euo pipefail
+#
+# Resilient by design: a failing package or step is reported and skipped, the
+# run keeps going, and a summary of what failed is printed at the end.
+set -uo pipefail   # NOTE: no `-e` — we never want one error to abort the whole install.
 
 REPO="https://github.com/OckoTajny/dotfiles.git"
 SRC_BASE="$HOME/.local/share"
@@ -10,6 +13,12 @@ BIN="$HOME/.local/bin"
 PROFILES=(ambxst illogical win11 caelestia)
 declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [caelestia]=caelestia )
 DEFAULT_PROFILE=ambxst
+
+CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
+  wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl)
+AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
+
+FAILS=()
 
 # --- colors (disabled when not a tty or NO_COLOR set) ------------------------
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -21,8 +30,9 @@ else
 fi
 
 banner() {
-  printf '%s\n' "${MAG}${B}"
+  printf '%s' "${MAG}${B}"
   cat <<'EOF'
+
    ╔══════════════════════════════════════════╗
    ║   d o t s w a p   ·   installer           ║
    ║   four Hyprland rices, one keypress       ║
@@ -32,45 +42,59 @@ EOF
 }
 
 step=0
-say()  { step=$((step+1)); printf '\n%s[%s%d%s/%s5%s]%s %s%s%s\n' \
-          "$DIM" "$CYN" "$step" "$DIM" "$DIM" "$DIM" "$R" "$B" "$1" "$R"; }
+say()  { step=$((step+1)); printf '\n%s[%s%d%s/5]%s %s%s%s\n' \
+          "$DIM" "$CYN" "$step" "$DIM" "$R" "$B" "$1" "$R"; }
 ok()   { printf '   %s✓%s %s\n' "$GRN" "$R" "$1"; }
 warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
 err()  { printf '   %s✗%s %s\n' "$RED" "$R" "$1"; }
-run()  { printf '   %s$ %s%s\n' "$DIM" "$1" "$R"; }
+fail() { err "$1"; FAILS+=("$1"); }            # record + keep going
 need() { command -v "$1" >/dev/null 2>&1; }
 
 banner
 
 # 1. base tooling --------------------------------------------------------------
 say "Checking base tools"
-need git     || sudo pacman -S --needed --noconfirm git
-need chezmoi || sudo pacman -S --needed --noconfirm chezmoi
+# clear a stale pacman lock (only if no pacman is actually running)
+if [ -f /var/lib/pacman/db.lck ] && ! pgrep -x pacman >/dev/null 2>&1; then
+  warn "stale pacman lock — removing /var/lib/pacman/db.lck"
+  sudo rm -f /var/lib/pacman/db.lck || true
+fi
+# refresh package databases (fixes 'unrecognized archive format' / unsynced db)
+if ! sudo pacman -Syy --noconfirm; then
+  warn "couldn't refresh pacman db (mirror down?) — run 'sudo pacman -Syy' and retry"
+fi
+need git     || sudo pacman -S --needed --noconfirm git     || fail "install git"
+need chezmoi || sudo pacman -S --needed --noconfirm chezmoi || fail "install chezmoi"
 if need yay; then
   ok "yay present"
-else
+elif need git; then
   warn "yay missing — bootstrapping AUR helper"
-  sudo pacman -S --needed --noconfirm base-devel git
-  tmp=$(mktemp -d); git clone https://aur.archlinux.org/yay.git "$tmp/yay"
-  ( cd "$tmp/yay" && makepkg -si --noconfirm )
+  sudo pacman -S --needed --noconfirm base-devel git || fail "base-devel for yay"
+  tmp=$(mktemp -d)
+  if git clone https://aur.archlinux.org/yay.git "$tmp/yay" && ( cd "$tmp/yay" && makepkg -si --noconfirm ); then
+    ok "yay installed"
+  else
+    fail "bootstrap yay"
+  fi
 fi
-ok "git, chezmoi, yay ready"
+need git && need chezmoi && ok "base tools ready" || warn "base tools incomplete — see summary"
 
-# 2. dependencies --------------------------------------------------------------
-# Glue set only — the three shells own their full dep trees via their upstream
-# installers (see README): Ambxst, illogical-impulse, caelestia.
+# 2. dependencies (per-package so one bad pkg doesn't sink the rest) -----------
 say "Installing core dependencies"
-run "pacman -S hyprland foot fish mako btop fastfetch fuzzel …"
-sudo pacman -S --needed --noconfirm \
-  hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock \
-  wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl
-ok "core packages installed"
-
-printf '   %sInstalling caelestia shell stack from AUR…%s\n' "$DIM" "$R"
-if yay -S --needed --noconfirm quickshell-git caelestia-cli caelestia-shell; then
-  ok "caelestia shell stack installed"
+for p in "${CORE_PKGS[@]}"; do
+  sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1 \
+    && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
+    || { printf '   %s✗%s %s\n' "$RED" "$R" "$p"; FAILS+=("pkg: $p"); }
+done
+if need yay; then
+  printf '   %sAUR (caelestia shell stack)…%s\n' "$DIM" "$R"
+  for p in "${AUR_PKGS[@]}"; do
+    yay -S --needed --noconfirm "$p" >/dev/null 2>&1 \
+      && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
+      || { printf '   %s⚠%s  %s (AUR)\n' "$YEL" "$R" "$p"; FAILS+=("aur: $p"); }
+  done
 else
-  warn "AUR deps failed — caelestia profile may not start until installed manually"
+  warn "no yay — skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
 fi
 
 # 3. clone profile sources (one branch each) ----------------------------------
@@ -78,38 +102,55 @@ say "Cloning rice profiles"
 for p in "${PROFILES[@]}"; do
   dst="$SRC_BASE/chezmoi-$p"
   if [ -d "$dst/.git" ]; then
-    printf '   %s↻%s %s%-10s%s updating\n' "$BLU" "$R" "$B" "$p" "$R"
-    git -C "$dst" pull --ff-only >/dev/null 2>&1 || true
+    printf '   %s↻%s %-10s updating\n' "$BLU" "$R" "$p"
+    git -C "$dst" pull --ff-only >/dev/null 2>&1 || warn "$p: pull failed (local changes?)"
+  elif git clone --quiet --branch "${BRANCH[$p]}" "$REPO" "$dst"; then
+    printf '   %s⬇%s %-10s ← %s%s%s\n' "$GRN" "$R" "$p" "$DIM" "${BRANCH[$p]}" "$R"
   else
-    printf '   %s⬇%s %s%-10s%s ← %s%s%s\n' "$GRN" "$R" "$B" "$p" "$R" "$DIM" "${BRANCH[$p]}" "$R"
-    git clone --quiet --branch "${BRANCH[$p]}" "$REPO" "$dst"
+    fail "clone $p (branch ${BRANCH[$p]})"
   fi
 done
-ok "4 profiles ready in ~/.local/share/chezmoi-*"
 
 # 4. install the dotswap tools -------------------------------------------------
-say "Installing dotswap tools + finishing up"
+say "Installing dotswap tools"
 mkdir -p "$BIN"
-self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
-if [ -d "$self_dir/bin" ]; then
-  install -Dm755 "$self_dir/bin/"dotswap* "$BIN/"
+self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")
+if [ -n "$self_dir" ] && [ -d "$self_dir/bin" ]; then
+  install -Dm755 "$self_dir/bin/"dotswap* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
 else
+  okcount=0
   for t in dotswap dotswap-cycle dotswap-postapply; do
-    curl -fsSL "https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/bin/$t" -o "$BIN/$t"
-    chmod +x "$BIN/$t"
+    if curl -fsSL "https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/bin/$t" -o "$BIN/$t"; then
+      chmod +x "$BIN/$t"; okcount=$((okcount+1))
+    fi
   done
+  [ "$okcount" -eq 3 ] && ok "tools installed → $BIN" || fail "download dotswap tools ($okcount/3)"
 fi
-ok "dotswap, dotswap-cycle, dotswap-postapply → $BIN"
 
 # 5. PATH + apply default profile ---------------------------------------------
+say "Finishing up"
 case ":$PATH:" in
   *":$BIN:"*) ;;
   *) grep -q "$BIN" "$HOME/.profile" 2>/dev/null || \
        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile"
      warn "added $BIN to ~/.profile — re-login or: source ~/.profile" ;;
 esac
-"$BIN/dotswap" use "$DEFAULT_PROFILE"
-ok "applied default profile: ${B}${DEFAULT_PROFILE}${R}"
+if [ -x "$BIN/dotswap" ] && [ -d "$SRC_BASE/chezmoi-$DEFAULT_PROFILE" ]; then
+  "$BIN/dotswap" use "$DEFAULT_PROFILE" && ok "applied default profile: ${B}${DEFAULT_PROFILE}${R}" \
+    || fail "apply profile $DEFAULT_PROFILE"
+else
+  warn "skipping 'dotswap use $DEFAULT_PROFILE' (tool or profile missing)"
+fi
 
-printf '\n%s%s✓ done.%s cycle rices with %sCtrl+Shift+Super+Left/Right%s — or %sdotswap use <profile>%s\n\n' \
-  "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
+# --- summary ------------------------------------------------------------------
+echo
+if [ "${#FAILS[@]}" -eq 0 ]; then
+  printf '%s%s✓ all done.%s cycle rices with %sCtrl+Shift+Super+Left/Right%s, or %sdotswap use <profile>%s\n\n' \
+    "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
+else
+  printf '%s%s⚠ finished with %d issue(s):%s\n' "$YEL" "$B" "${#FAILS[@]}" "$R"
+  for f in "${FAILS[@]}"; do printf '   %s•%s %s\n' "$YEL" "$R" "$f"; done
+  printf '   %sFix the above (often: bad mirror → %ssudo pacman -Syy%s%s) and re-run this script — it is safe to repeat.%s\n\n' \
+    "$DIM" "$B" "$R" "$DIM" "$R"
+fi
+exit 0

@@ -15,6 +15,11 @@ TRACKED_CONFIG_DIRS=(
 TRACKED_LOCAL_SHARE_DIRS=(ambxst)
 TRACKED_HOME_FILES=(.zshrc)
 
+# Private/runtime data that must NEVER be committed (clipboard history holds
+# copied secrets — tokens, passwords). Pruned from each snapshot. Paths are
+# relative to a copied tracked dir under dot_local/share or dot_config.
+SENSITIVE_GLOBS=(clipboard.db clipboard-data keys.db chats)
+
 usage() {
   cat <<'EOF'
 dotswap - swap dotfile profiles
@@ -68,6 +73,10 @@ snapshot_to() {
     if [[ -e "$HOME/.local/share/$d" ]]; then
       rm -rf "$src/dot_local/share/$d"
       cp -r "$HOME/.local/share/$d" "$src/dot_local/share/$d"
+      # strip private runtime data (clipboard history = copied secrets)
+      for g in "${SENSITIVE_GLOBS[@]}"; do
+        rm -rf "$src/dot_local/share/$d/$g"
+      done
     else
       rm -rf "$src/dot_local/share/$d"
     fi
