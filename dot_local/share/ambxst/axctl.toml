@@ -580,7 +580,7 @@ enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER", "ALT"]
-key = "V"
+key = "S"
 dispatcher = "movetoworkspace"
 argument = "special"
 flags = ""

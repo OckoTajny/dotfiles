@@ -1341,7 +1341,7 @@
             "enabled": true,
             "keys": [
                 {
-                    "key": "V",
+                    "key": "S",
                     "modifiers": [
                         "SUPER",
                         "ALT"
