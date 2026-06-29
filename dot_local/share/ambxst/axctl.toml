@@ -123,8 +123,8 @@ flags = ""
 enabled = true
 
 [[keybinds]]
-modifiers = ["SUPER"]
-key = "S"
+modifiers = ["SUPER", "SHIFT"]
+key = "V"
 dispatcher = "exec"
 argument = "ambxst run tools"
 flags = ""
@@ -571,8 +571,8 @@ flags = ""
 enabled = true
 
 [[keybinds]]
-modifiers = ["SUPER", "SHIFT"]
-key = "V"
+modifiers = ["SUPER"]
+key = "S"
 dispatcher = "togglespecialworkspace"
 argument = ""
 flags = ""

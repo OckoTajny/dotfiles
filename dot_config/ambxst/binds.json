@@ -179,9 +179,10 @@
                     },
                     "id": "ambxst.tools"
                 },
-                "key": "S",
+                "key": "V",
                 "modifiers": [
-                    "SUPER"
+                    "SUPER",
+                    "SHIFT"
                 ]
             }
         },
@@ -1319,10 +1320,9 @@
             "enabled": true,
             "keys": [
                 {
-                    "key": "V",
+                    "key": "S",
                     "modifiers": [
-                        "SUPER",
-                        "SHIFT"
+                        "SUPER"
                     ]
                 }
             ],
@@ -2479,9 +2479,10 @@
                     },
                     "id": "ambxst.tools"
                 },
-                "key": "S",
+                "key": "V",
                 "modifiers": [
-                    "SUPER"
+                    "SUPER",
+                    "SHIFT"
                 ]
             }
         }
