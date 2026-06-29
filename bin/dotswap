@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# dotswap - swap dotfile profiles via chezmoi multi-source
+# Profiles live at ~/.local/share/chezmoi-<name>/
+
+set -euo pipefail
+
+PROFILE_FILE="$HOME/.local/state/dotswap-profile"
+SRC_BASE="$HOME/.local/share"
+
+TRACKED_CONFIG_DIRS=(
+  alacritty ambxst btop caelestia cava fastfetch fish foot fuzzel hypr
+  illogical-impulse kde-material-you-colors kitty mako matugen
+  nvim quickshell waybar
+)
+TRACKED_LOCAL_SHARE_DIRS=(ambxst)
+TRACKED_HOME_FILES=(.zshrc)
+
+usage() {
+  cat <<'EOF'
+dotswap - swap dotfile profiles
+
+Usage:
+  dotswap status              Show current profile
+  dotswap list                List available profiles
+  dotswap use <profile>       Save current, switch to profile
+  dotswap save                Re-snapshot current state into current profile
+  dotswap diff <profile>      Show what would change
+  dotswap snapshot <name>     Create new profile from current state
+
+Profiles are at ~/.local/share/chezmoi-<name>/
+EOF
+}
+
+current_profile() {
+  if [[ -f "$PROFILE_FILE" ]]; then
+    cat "$PROFILE_FILE"
+  else
+    echo "unknown"
+  fi
+}
+
+list_profiles() {
+  for d in "$SRC_BASE"/chezmoi-*; do
+    [[ -d "$d" ]] && basename "$d" | sed 's/^chezmoi-//'
+  done
+}
+
+profile_exists() {
+  [[ -d "$SRC_BASE/chezmoi-$1" ]]
+}
+
+# Mirror current disk state into a profile source dir
+snapshot_to() {
+  local profile="$1"
+  local src="$SRC_BASE/chezmoi-$profile"
+  mkdir -p "$src/dot_config" "$src/dot_local/share"
+
+  for d in "${TRACKED_CONFIG_DIRS[@]}"; do
+    if [[ -e "$HOME/.config/$d" ]]; then
+      rm -rf "$src/dot_config/$d"
+      cp -r "$HOME/.config/$d" "$src/dot_config/$d"
+    else
+      rm -rf "$src/dot_config/$d"
+    fi
+  done
+
+  for d in "${TRACKED_LOCAL_SHARE_DIRS[@]}"; do
+    if [[ -e "$HOME/.local/share/$d" ]]; then
+      rm -rf "$src/dot_local/share/$d"
+      cp -r "$HOME/.local/share/$d" "$src/dot_local/share/$d"
+    else
+      rm -rf "$src/dot_local/share/$d"
+    fi
+  done
+
+  for f in "${TRACKED_HOME_FILES[@]}"; do
+    local target_name="dot_${f#.}"
+    if [[ -f "$HOME/$f" ]]; then
+      cp "$HOME/$f" "$src/$target_name"
+    else
+      rm -f "$src/$target_name"
+    fi
+  done
+
+  if [[ -d "$src/.git" ]]; then
+    git -C "$src" add -A
+    git -C "$src" commit -q -m "snapshot $(date -Iseconds)" 2>/dev/null || true
+  fi
+}
+
+apply_profile() {
+  local profile="$1"
+  local src="$SRC_BASE/chezmoi-$profile"
+  chezmoi --source "$src" apply --force
+}
+
+cmd_use() {
+  local profile="$1"
+  profile_exists "$profile" || { echo "No profile '$profile'. Available:"; list_profiles; exit 1; }
+  local cur
+  cur=$(current_profile)
+  if [[ "$cur" != "unknown" && "$cur" != "$profile" ]] && profile_exists "$cur"; then
+    echo "Saving current state to '$cur'..."
+    snapshot_to "$cur"
+  fi
+  echo "Applying '$profile'..."
+  apply_profile "$profile"
+  mkdir -p "$(dirname "$PROFILE_FILE")"
+  echo "$profile" > "$PROFILE_FILE"
+  echo "Now on: $profile"
+  echo "Run 'hyprctl reload' or relogin for compositor changes."
+}
+
+cmd_save() {
+  local cur
+  cur=$(current_profile)
+  [[ "$cur" != "unknown" ]] || { echo "No active profile set. Use 'dotswap use <name>' first."; exit 1; }
+  profile_exists "$cur" || { echo "Current profile '$cur' missing source dir."; exit 1; }
+  echo "Snapshotting current state to '$cur'..."
+  snapshot_to "$cur"
+  echo "Saved."
+}
+
+cmd_snapshot() {
+  local name="$1"
+  local src="$SRC_BASE/chezmoi-$name"
+  [[ ! -d "$src" ]] || { echo "Profile '$name' exists. Use 'dotswap save' to update."; exit 1; }
+  mkdir -p "$src"
+  git -C "$src" init -q
+  snapshot_to "$name"
+  echo "Created profile '$name'."
+}
+
+case "${1:-}" in
+  status)   echo "Current profile: $(current_profile)" ;;
+  list)     list_profiles ;;
+  use)      [[ -n "${2:-}" ]] || { usage; exit 1; }; cmd_use "$2" ;;
+  save)     cmd_save ;;
+  snapshot) [[ -n "${2:-}" ]] || { usage; exit 1; }; cmd_snapshot "$2" ;;
+  diff)     [[ -n "${2:-}" ]] || { usage; exit 1; }; profile_exists "$2" || { echo "No profile '$2'"; exit 1; }; chezmoi --source "$SRC_BASE/chezmoi-$2" diff ;;
+  -h|--help|help|"") usage ;;
+  *)        echo "Unknown command: $1"; usage; exit 1 ;;
+esac

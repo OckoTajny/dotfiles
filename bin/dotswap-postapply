@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Restart shell processes after a dotswap to match the target profile.
+set -euo pipefail
+
+profile="${1:-$(cat "$HOME/.local/state/dotswap-profile" 2>/dev/null || echo "")}"
+
+kill_ambxst() {
+  pkill -f "qs -p .*ambxst/shell.qml" 2>/dev/null || true
+  pkill -f "axctl .*ambxst/axctl.toml" 2>/dev/null || true
+  pkill -f "ambxst/scripts/loginlock.sh" 2>/dev/null || true
+  pkill -f "ambxst/scripts/sleep_monitor.sh" 2>/dev/null || true
+  pkill -x ambxst 2>/dev/null || true
+}
+
+kill_mako() {
+  pkill -x mako 2>/dev/null || true
+}
+
+kill_quickshell_ii() {
+  pkill -f "qs -c ii" 2>/dev/null || true
+  pkill -f "quickshell -c ii" 2>/dev/null || true
+}
+
+kill_caelestia() {
+  pkill -f "qs -c caelestia" 2>/dev/null || true
+  pkill -f "quickshell -c caelestia" 2>/dev/null || true
+}
+
+start_ambxst() {
+  pgrep -f "ambxst/shell.qml" >/dev/null && return
+  command -v ambxst >/dev/null && setsid ambxst >/dev/null 2>&1 < /dev/null &
+}
+
+start_quickshell_ii() {
+  pgrep -f "qs -c ii" >/dev/null && return
+  setsid qs -c ii >/dev/null 2>&1 < /dev/null &
+}
+
+start_caelestia() {
+  pgrep -f "qs -c caelestia" >/dev/null && return
+  if command -v caelestia >/dev/null; then
+    setsid caelestia shell -d >/dev/null 2>&1 < /dev/null &
+  else
+    setsid qs -c caelestia >/dev/null 2>&1 < /dev/null &
+  fi
+}
+
+case "$profile" in
+  ambxst)
+    kill_quickshell_ii
+    kill_caelestia
+    kill_mako
+    start_ambxst
+    ;;
+  illogical|win11)
+    kill_ambxst
+    kill_caelestia
+    kill_mako
+    start_quickshell_ii
+    ;;
+  caelestia)
+    kill_ambxst
+    kill_quickshell_ii
+    kill_mako
+    start_caelestia
+    ;;
+  *)
+    echo "Unknown profile: $profile" >&2
+    exit 1
+    ;;
+esac
+
+hyprctl reload >/dev/null 2>&1 || true

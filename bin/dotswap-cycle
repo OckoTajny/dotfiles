@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROFILE_FILE="$HOME/.local/state/dotswap-profile"
+PROFILES=(ambxst illogical win11 caelestia)
+
+direction="${1:-next}"
+cur=$(cat "$PROFILE_FILE" 2>/dev/null || echo "")
+
+idx=0
+for i in "${!PROFILES[@]}"; do
+  [[ "${PROFILES[$i]}" == "$cur" ]] && idx=$i
+done
+
+n=${#PROFILES[@]}
+case "$direction" in
+  next) new_idx=$(( (idx + 1) % n )) ;;
+  prev) new_idx=$(( (idx - 1 + n) % n )) ;;
+  *)    echo "Usage: $0 next|prev" >&2; exit 1 ;;
+esac
+
+target="${PROFILES[$new_idx]}"
+"$HOME/.local/bin/dotswap" use "$target"
+"$HOME/.local/bin/dotswap-postapply" "$target"
+notify-send "dotswap" "Switched to: $target" 2>/dev/null || true
