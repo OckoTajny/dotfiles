@@ -7,8 +7,11 @@
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 
--- autosave: write named modifiable buffers on leaving insert / text change
-vim.api.nvim_create_autocmd({ "InsertLeave", "TextChanged" }, {
+-- autosave: write named modifiable buffers when leaving them
+-- ponytail: no TextChanged — it fires on every normal-mode edit and thrashes
+-- format-on-save. Save on focus/buffer/insert exit instead. Add a debounced
+-- TextChanged only if you truly need mid-edit saves.
+vim.api.nvim_create_autocmd({ "InsertLeave", "BufLeave", "FocusLost" }, {
   group = vim.api.nvim_create_augroup("autosave", { clear = true }),
   callback = function(ev)
     local buf = ev.buf
