@@ -15,8 +15,11 @@ declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [caelestia]=c
 DEFAULT_PROFILE=ambxst
 
 CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
-  wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl)
+  wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq)
 AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
+# Desktop apps the keybinds launch — so every bind works out of the box.
+# (yay handles both repo and AUR; brave-bin/spotify are AUR on plain Arch.)
+APP_PKGS=(kitty nautilus discord brave-bin spotify)
 
 FAILS=()
 
@@ -80,7 +83,7 @@ fi
 need git && need chezmoi && ok "base tools ready" || warn "base tools incomplete — see summary"
 
 # 2. dependencies (per-package so one bad pkg doesn't sink the rest) -----------
-say "Installing core dependencies"
+say "Installing packages & apps"
 for p in "${CORE_PKGS[@]}"; do
   sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1 \
     && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
@@ -95,6 +98,28 @@ if need yay; then
   done
 else
   warn "no yay — skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
+fi
+
+# desktop apps the keybinds launch (kitty, discord, spotify, brave, files…)
+printf '   %sApps (keybind targets)…%s\n' "$DIM" "$R"
+for p in "${APP_PKGS[@]}"; do
+  if need yay; then yay -S --needed --noconfirm "$p" >/dev/null 2>&1; else sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1; fi \
+    && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
+    || { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$p"; FAILS+=("app: $p"); }
+done
+
+# brrtfetch — the purple-glitch fastfetch bound to Super+Return (custom Go build)
+if need brrtfetch; then
+  ok "brrtfetch present"
+else
+  sudo pacman -S --needed --noconfirm go expect >/dev/null 2>&1 || true
+  [ -d "$HOME/brrtfetch/.git" ] || git clone --quiet https://github.com/ferrebarrat/brrtfetch "$HOME/brrtfetch" >/dev/null 2>&1
+  if need go && ( cd "$HOME/brrtfetch" && go build -o ./bin/brrtfetch ./go/main.go ) >/dev/null 2>&1 \
+     && sudo install -m755 "$HOME/brrtfetch/bin/brrtfetch" /usr/local/bin/brrtfetch >/dev/null 2>&1; then
+    ok "brrtfetch built → /usr/local/bin (gifs in ~/brrtfetch)"
+  else
+    fail "brrtfetch (needs go; clone ferrebarrat/brrtfetch + 'go build')"
+  fi
 fi
 
 # 3. clone profile sources (one branch each) ----------------------------------
