@@ -52,6 +52,7 @@ warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
 err()  { printf '   %s✗%s %s\n' "$RED" "$R" "$1"; }
 fail() { err "$1"; FAILS+=("$1"); }            # record + keep going
 need() { command -v "$1" >/dev/null 2>&1; }
+have() { pacman -Qq "$1" >/dev/null 2>&1; }    # already installed?
 
 banner
 
@@ -85,6 +86,7 @@ need git && need chezmoi && ok "base tools ready" || warn "base tools incomplete
 # 2. dependencies (per-package so one bad pkg doesn't sink the rest) -----------
 say "Installing packages & apps"
 for p in "${CORE_PKGS[@]}"; do
+  if have "$p"; then printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; continue; fi
   sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1 \
     && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
     || { printf '   %s✗%s %s\n' "$RED" "$R" "$p"; FAILS+=("pkg: $p"); }
@@ -92,6 +94,7 @@ done
 if need yay; then
   printf '   %sAUR (caelestia shell stack)…%s\n' "$DIM" "$R"
   for p in "${AUR_PKGS[@]}"; do
+    if have "$p"; then printf '   %s✓%s %s (installed)\n' "$GRN" "$R" "$p"; continue; fi
     yay -S --needed --noconfirm "$p" >/dev/null 2>&1 \
       && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
       || { printf '   %s⚠%s  %s (AUR)\n' "$YEL" "$R" "$p"; FAILS+=("aur: $p"); }
@@ -103,6 +106,7 @@ fi
 # desktop apps the keybinds launch (kitty, discord, spotify, brave, files…)
 printf '   %sApps (keybind targets)…%s\n' "$DIM" "$R"
 for p in "${APP_PKGS[@]}"; do
+  if have "$p"; then printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; continue; fi
   if need yay; then yay -S --needed --noconfirm "$p" >/dev/null 2>&1; else sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1; fi \
     && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
     || { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$p"; FAILS+=("app: $p"); }
