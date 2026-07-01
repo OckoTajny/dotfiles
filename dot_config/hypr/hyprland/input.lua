@@ -3,7 +3,6 @@ local vars = require("variables")
 hl.config({
     input = {
         kb_layout          = "us,cz",
-        kb_options         = "grp:alt_shift_toggle",
         numlock_by_default = false,
         repeat_delay       = 250,
         repeat_rate        = 35,
