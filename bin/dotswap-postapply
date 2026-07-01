@@ -45,17 +45,24 @@ start_caelestia() {
   fi
 }
 
+# Caelestia ships a Lua Hyprland config (hyprland.lua). Newer Hyprland prefers
+# hyprland.lua over hyprland.conf, so if it lingers after switching to a .conf
+# rice the wrong (caelestia) keybinds load. Drop it for the .conf profiles.
+drop_caelestia_lua() { rm -f "$HOME/.config/hypr/hyprland.lua"; }
+
 case "$profile" in
   ambxst)
     kill_quickshell_ii
     kill_caelestia
     kill_mako
+    drop_caelestia_lua
     start_ambxst
     ;;
   illogical|win11)
     kill_ambxst
     kill_caelestia
     kill_mako
+    drop_caelestia_lua
     start_quickshell_ii
     ;;
   caelestia)

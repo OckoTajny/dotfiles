@@ -29,7 +29,9 @@ CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq
   # keybind targets: whisper-flow dictation, OCR, media, session menu, screenshots
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
-  tesseract tesseract-data-eng tesseract-data-ces bc)
+  tesseract tesseract-data-eng tesseract-data-ces bc
+  # zsh (default shell — the tracked .zshrc uses oh-my-zsh)
+  zsh)
 # Required: the caelestia shell stack (the rices need it).
 AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
 # Optional desktop apps the keybinds launch. The user picks which to install
@@ -198,6 +200,34 @@ else
     ok "brrtfetch built → /usr/local/bin (gifs in ~/brrtfetch)"
   else
     fail "brrtfetch (needs go; clone ferrebarrat/brrtfetch + 'go build')"
+  fi
+fi
+
+# zsh — the tracked .zshrc uses oh-my-zsh + zsh-autosuggestions + zsh-syntax-highlighting
+printf '   %szsh (oh-my-zsh + plugins)…%s\n' "$DIM" "$R"
+ZSH_DIR="$HOME/.oh-my-zsh"
+if [ -d "$ZSH_DIR" ]; then
+  ok "oh-my-zsh present"
+elif need curl; then
+  # --unattended: no shell change here (we do chsh below), don't overwrite .zshrc
+  RUNZSH=no KEEP_ZSHRC=yes CHSH=no \
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc >/dev/null 2>&1 \
+    && ok "oh-my-zsh installed" || fail "oh-my-zsh install"
+fi
+for plug in zsh-autosuggestions zsh-syntax-highlighting; do
+  dst="$ZSH_DIR/custom/plugins/$plug"
+  if [ -d "$dst" ]; then printf '   %s✓%s %s\n' "$GRN" "$R" "$plug"; continue; fi
+  git clone --quiet --depth 1 "https://github.com/zsh-users/$plug" "$dst" >/dev/null 2>&1 \
+    && printf '   %s✓%s %s\n' "$GRN" "$R" "$plug" || { warn "clone $plug"; FAILS+=("plugin: $plug"); }
+done
+# make zsh the default login shell (sudo chsh avoids a password prompt)
+if need zsh; then
+  if [ "$(getent passwd "$USER" | cut -d: -f7)" = "$(command -v zsh)" ]; then
+    ok "zsh already default shell"
+  else
+    sudo chsh -s "$(command -v zsh)" "$USER" >/dev/null 2>&1 \
+      && ok "default shell → zsh (re-login to take effect)" \
+      || warn "set zsh manually: chsh -s $(command -v zsh)"
   fi
 fi
 
