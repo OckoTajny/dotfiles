@@ -25,6 +25,19 @@ Caelestia shell stack, clones all four profile branches into
 `~/.local/share/chezmoi-<profile>/`, drops the `dotswap` tools into
 `~/.local/bin/`, and applies the `ambxst` profile.
 
+### Updating
+
+The same script doubles as an updater. Run it with `--update` to pull in only
+what's **new** — updated packages and newly added tools — while leaving your
+`~/.config` (keybinds, tweaks) completely untouched:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh | bash -s -- --update
+```
+
+Without `--update` it runs a fresh install and writes the configs; with it,
+configs are never re-applied.
+
 > The three desktop shells own their full dependency trees. For a complete
 > install of any one rice, also run its upstream installer:
 > - **Ambxst** — https://github.com/Axenide/Ambxst

@@ -14,6 +14,17 @@ PROFILES=(ambxst illogical win11 caelestia)
 declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [caelestia]=caelestia )
 DEFAULT_PROFILE=ambxst
 
+# MODE: install (default) writes configs; update only pulls in what's new
+# (updated packages, new tools) and NEVER re-applies configs — so the user's
+# ~/.config (keybinds, tweaks) is left untouched.
+MODE=install
+for a in "$@"; do
+  case "$a" in
+    --update|update|-u) MODE=update ;;
+    --help|-h) echo "Usage: install.sh [--update]"; exit 0 ;;
+  esac
+done
+
 CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq)
 AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
@@ -34,13 +45,23 @@ fi
 
 banner() {
   printf '%s' "${MAG}${B}"
-  cat <<'EOF'
+  if [ "$MODE" = update ]; then
+    cat <<'EOF'
+
+   ╔══════════════════════════════════════════╗
+   ║   d o t s w a p   ·   update              ║
+   ║   new packages & tools · configs kept     ║
+   ╚══════════════════════════════════════════╝
+EOF
+  else
+    cat <<'EOF'
 
    ╔══════════════════════════════════════════╗
    ║   d o t s w a p   ·   installer           ║
    ║   four Hyprland rices, one keypress       ║
    ╚══════════════════════════════════════════╝
 EOF
+  fi
   printf '%s' "$R"
 }
 
@@ -85,6 +106,17 @@ need git && need chezmoi && ok "base tools ready" || warn "base tools incomplete
 
 # 2. dependencies (per-package so one bad pkg doesn't sink the rest) -----------
 say "Installing packages & apps"
+# update mode: upgrade what's already installed (the loops below then add any
+# newly-introduced packages via the have-guard)
+if [ "$MODE" = update ]; then
+  if need yay; then
+    yay -Syu --noconfirm >/dev/null 2>&1 && ok "system & AUR packages upgraded" \
+      || warn "package upgrade hit issues — see summary / re-run"
+  else
+    sudo pacman -Syu --noconfirm >/dev/null 2>&1 && ok "system packages upgraded" \
+      || warn "package upgrade hit issues"
+  fi
+fi
 for p in "${CORE_PKGS[@]}"; do
   if have "$p"; then printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; continue; fi
   sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1 \
@@ -164,7 +196,9 @@ case ":$PATH:" in
        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile"
      warn "added $BIN to ~/.profile — re-login or: source ~/.profile" ;;
 esac
-if [ -x "$BIN/dotswap" ] && [ -d "$SRC_BASE/chezmoi-$DEFAULT_PROFILE" ]; then
+if [ "$MODE" = update ]; then
+  ok "update mode — your ${B}~/.config${R} was left untouched (keybinds & tweaks kept)"
+elif [ -x "$BIN/dotswap" ] && [ -d "$SRC_BASE/chezmoi-$DEFAULT_PROFILE" ]; then
   "$BIN/dotswap" use "$DEFAULT_PROFILE" && ok "applied default profile: ${B}${DEFAULT_PROFILE}${R}" \
     || fail "apply profile $DEFAULT_PROFILE"
 else
