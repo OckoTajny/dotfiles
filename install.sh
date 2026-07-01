@@ -26,8 +26,12 @@ for a in "$@"; do
 done
 
 CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
-  wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq)
-AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
+  wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq
+  # keybind targets: whisper-flow dictation, OCR, media, session menu, screenshots
+  wtype uv pipewire pavucontrol playerctl wlogout hyprshot
+  tesseract tesseract-data-eng tesseract-data-ces bc)
+AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell
+  whatsapp-linux-desktop jetbrains-toolbox onlyoffice-desktopeditors)
 # Desktop apps the keybinds launch — so every bind works out of the box.
 # (yay handles both repo and AUR; brave-bin/spotify are AUR on plain Arch.)
 APP_PKGS=(kitty nautilus discord brave-bin spotify)
@@ -172,20 +176,34 @@ for p in "${PROFILES[@]}"; do
   fi
 done
 
-# 4. install the dotswap tools -------------------------------------------------
+# 4. install the dotswap tools + whisper-flow ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
+TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow)
 self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")
 if [ -n "$self_dir" ] && [ -d "$self_dir/bin" ]; then
-  install -Dm755 "$self_dir/bin/"dotswap* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
+  install -Dm755 "$self_dir/bin/"* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
 else
   okcount=0
-  for t in dotswap dotswap-cycle dotswap-postapply; do
+  for t in "${TOOLS[@]}"; do
     if curl -fsSL "https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/bin/$t" -o "$BIN/$t"; then
       chmod +x "$BIN/$t"; okcount=$((okcount+1))
     fi
   done
-  [ "$okcount" -eq 3 ] && ok "tools installed → $BIN" || fail "download dotswap tools ($okcount/3)"
+  [ "$okcount" -eq "${#TOOLS[@]}" ] && ok "tools installed → $BIN" \
+    || fail "download dotswap tools ($okcount/${#TOOLS[@]})"
+fi
+# whisper-flow (Super+Y dictation) needs the transcription engine
+if need uv; then
+  if uv tool list 2>/dev/null | grep -q whisper-ctranslate2; then
+    ok "whisper-ctranslate2 present"
+  elif uv tool install whisper-ctranslate2 >/dev/null 2>&1; then
+    ok "whisper-ctranslate2 installed (uv tool)"
+  else
+    warn "whisper-ctranslate2 (run 'uv tool install whisper-ctranslate2')"
+  fi
+else
+  warn "uv missing — skipping whisper-ctranslate2 (dictation engine)"
 fi
 
 # 5. PATH + apply default profile ---------------------------------------------

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# whisper-flow: toggle push-to-talk dictation for Wayland.
+# 1st run = start recording. 2nd run = stop, transcribe, type into focused window.
+# Engine: whisper-ctranslate2 (uv tool). Audio: pw-record. Type: wtype.
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"  # Hyprland exec gives a minimal PATH
+DIR=/tmp/whisper-flow
+WAV="$DIR/rec.wav"
+TXT="$DIR/rec.txt"
+PIDF="$DIR/rec.pid"
+MODEL="${WHISPER_FLOW_MODEL:-base}"   # ponytail: base = fast+ok; set WHISPER_FLOW_MODEL=small for accuracy
+mkdir -p "$DIR"
+
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -t 1500 "whisper-flow" "$1" || true; }
+
+if [[ -f "$PIDF" ]] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
+  # --- stop + transcribe + type ---
+  kill "$(cat "$PIDF")" 2>/dev/null || true
+  rm -f "$PIDF"
+  sleep 0.2
+  notify "transcribing…"
+  rm -f "$TXT"
+  whisper-ctranslate2 "$WAV" --model "$MODEL" --output_dir "$DIR" \
+    --output_format txt --task transcribe >"$DIR/err.log" 2>&1 || { notify "transcribe failed — see $DIR/err.log"; exit 1; }
+  text="$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$TXT" | paste -sd' ')"
+  if [[ -n "$text" ]]; then
+    wtype "$text"
+    notify "typed: ${text:0:40}"
+  else
+    notify "empty"
+  fi
+else
+  # --- start recording ---
+  notify "recording… (press bind again to stop)"
+  pw-record --rate 16000 --channels 1 "$WAV" &
+  echo $! > "$PIDF"
+fi
