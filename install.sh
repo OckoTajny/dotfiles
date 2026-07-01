@@ -179,7 +179,7 @@ done
 # 4. install the dotswap tools + whisper-flow ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
-TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow)
+TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle)
 self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")
 if [ -n "$self_dir" ] && [ -d "$self_dir/bin" ]; then
   install -Dm755 "$self_dir/bin/"* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
