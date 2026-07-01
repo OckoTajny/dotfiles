@@ -30,11 +30,20 @@ CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   # keybind targets: whisper-flow dictation, OCR, media, session menu, screenshots
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
   tesseract tesseract-data-eng tesseract-data-ces bc)
-AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell
-  whatsapp-linux-desktop jetbrains-toolbox onlyoffice-desktopeditors)
-# Desktop apps the keybinds launch — so every bind works out of the box.
-# (yay handles both repo and AUR; brave-bin/spotify are AUR on plain Arch.)
-APP_PKGS=(kitty nautilus discord brave-bin spotify)
+# Required: the caelestia shell stack (the rices need it).
+AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
+# Optional desktop apps the keybinds launch. The user picks which to install
+# (all / a subset / none). "pkg|label" — label shown in the menu.
+OPTIONAL_APPS=(
+  "kitty|terminal"
+  "nautilus|file manager"
+  "brave-bin|browser"
+  "discord|Discord"
+  "spotify|Spotify"
+  "whatsapp-linux-desktop|WhatsApp"
+  "jetbrains-toolbox|JetBrains Toolbox (IntelliJ)"
+  "onlyoffice-desktopeditors|OnlyOffice"
+)
 
 FAILS=()
 
@@ -139,9 +148,39 @@ else
   warn "no yay — skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
 fi
 
-# desktop apps the keybinds launch (kitty, discord, spotify, brave, files…)
-printf '   %sApps (keybind targets)…%s\n' "$DIM" "$R"
-for p in "${APP_PKGS[@]}"; do
+# optional desktop apps the keybinds launch — the user chooses which to install
+printf '   %sApps (keybind targets) — optional%s\n' "$DIM" "$R"
+n=${#OPTIONAL_APPS[@]}
+i=1
+for entry in "${OPTIONAL_APPS[@]}"; do
+  printf '     %s%2d)%s %-24s %s%s%s\n' "$CYN" "$i" "$R" "${entry%%|*}" "$DIM" "${entry#*|}" "$R"
+  i=$((i+1))
+done
+# read the choice from the real terminal (stdin is the piped script under curl|bash)
+ans=all
+if [ -r /dev/tty ]; then
+  printf '   %sPick numbers (e.g. "1 3 5"), %sa%s%s=all, %sn%s%s=none [all]:%s ' \
+    "$B" "$GRN" "$R" "$B" "$RED" "$R" "$B" "$R"
+  IFS= read -r ans </dev/tty || ans=all
+else
+  warn "no terminal — installing all optional apps by default"
+fi
+
+chosen=()
+case "$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')" in
+  ""|a|all)  for e in "${OPTIONAL_APPS[@]}"; do chosen+=("${e%%|*}"); done ;;
+  n|none)    warn "skipping optional apps" ;;
+  *)         for tok in $ans; do
+               case "$tok" in
+                 (*[!0-9]*) warn "ignoring '$tok'" ;;
+                 (*) if [ "$tok" -ge 1 ] && [ "$tok" -le "$n" ]; then
+                       e="${OPTIONAL_APPS[$((tok-1))]}"; chosen+=("${e%%|*}")
+                     else warn "ignoring out-of-range '$tok'"; fi ;;
+               esac
+             done ;;
+esac
+
+for p in "${chosen[@]}"; do
   if have "$p"; then printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; continue; fi
   if need yay; then yay -S --needed --noconfirm "$p" >/dev/null 2>&1; else sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1; fi \
     && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
