@@ -34,7 +34,9 @@ CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   zsh
   # neovim: the tracked ~/.config/nvim is LazyVim; it self-bootstraps on first
   # launch. node/npm let Mason install the LSP servers (pyright, ts, json, …).
-  neovim nodejs npm)
+  neovim nodejs npm
+  # checkupdates — used by hypr custom update-check.sh startup script
+  pacman-contrib)
 # Required: the caelestia shell stack (the rices need it).
 AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
 # Optional desktop apps the keybinds launch. The user picks which to install
