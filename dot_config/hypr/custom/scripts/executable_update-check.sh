@@ -20,4 +20,5 @@ action=$(notify-send -a "Updaty" -i system-software-update -t 0 \
   -A update="Aktualizovat" \
   "Dostupné aktualizace" "$repo repo + $aur AUR balíčků" 2>/dev/null || true)
 
-[[ "$action" == "update" ]] && kitty --title "System update" -e yay -Syu
+# --noconfirm: po zadání sudo hesla updatuje vše bez dalších dotazů (menu výběr balíčků, replace, atd.)
+[[ "$action" == "update" ]] && kitty --title "System update" -e yay -Syu --noconfirm
