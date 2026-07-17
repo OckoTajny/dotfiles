@@ -20,5 +20,7 @@ action=$(notify-send -a "Updaty" -i system-software-update -t 0 \
   -A update="Aktualizovat" \
   "Dostupné aktualizace" "$repo repo + $aur AUR balíčků" 2>/dev/null || true)
 
-# yes | yay: po zadání sudo hesla updatuje vše bez dalších dotazů (--noconfirm u yay umí crashnout)
-[[ "$action" == "update" ]] && kitty --title "System update" -e bash -c 'yes | yay -Syu'
+# --answerdiff/-clean/-edit=None: skip PKGBUILD diff/clean/edit prompts explicitly (avoids
+# hang on `less` pager) instead of blindly piping "y" into everything with `yes`.
+[[ "$action" == "update" ]] && kitty --title "System update" -e yay -Syu --noconfirm \
+  --answerdiff None --answerclean None --answeredit None
