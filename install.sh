@@ -175,6 +175,17 @@ else
   warn "no yay — skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
 fi
 
+# Ambxst shell (ambxst rice's bar/dock) — not a package, has its own installer.
+# The tracked hyprland.conf already has `source = ~/.local/share/ambxst/hyprland.conf`,
+# so without this, Hyprland loads fine but no bar/dock ever appears.
+if need ambxst; then
+  ok "Ambxst present"
+else
+  spin "installing Ambxst shell…" bash -c "curl -fsSL get.axeni.de/ambxst | sh" \
+    && ok "Ambxst installed" \
+    || { warn "Ambxst install failed (log: $SPIN_LOG) — install manually: curl -L get.axeni.de/ambxst | sh"; FAILS+=("ambxst: install ($SPIN_LOG)"); }
+fi
+
 # optional desktop apps the keybinds launch — the user chooses which to install
 printf '   %sApps (keybind targets) — optional%s\n' "$DIM" "$R"
 n=${#OPTIONAL_APPS[@]}
