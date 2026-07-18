@@ -63,25 +63,30 @@ else
   B=; DIM=; R=; RED=; GRN=; YEL=; BLU=; MAG=; CYN=
 fi
 
+# Centers $2 within a field of width $1, both sides padded so the box
+# border always lines up regardless of text length (hand-counted spaces
+# drifted out of sync before — this can't).
+center() {
+  local w=$1 s=$2 pad=$(( w - ${#2} )) l r
+  l=$(( pad / 2 )); r=$(( pad - l ))
+  printf '%*s%s%*s' "$l" "" "$s" "$r" ""
+}
+
 banner() {
-  printf '%s' "${MAG}${B}"
+  local w=40 bar title sub
+  bar=$(printf '═%.0s' $(seq 1 "$w"))
   if [ "$MODE" = update ]; then
-    cat <<'EOF'
-
-   ╔══════════════════════════════════════════╗
-   ║   d o t s w a p   ·   update              ║
-   ║   new packages & tools · configs kept     ║
-   ╚══════════════════════════════════════════╝
-EOF
+    title="d o t s w a p  ·  update"
+    sub="new packages & tools · configs kept"
   else
-    cat <<'EOF'
-
-   ╔══════════════════════════════════════════╗
-   ║   d o t s w a p   ·   installer           ║
-   ║   four Hyprland rices, one keypress       ║
-   ╚══════════════════════════════════════════╝
-EOF
+    title="d o t s w a p  ·  installer"
+    sub="four Hyprland rices, one keypress"
   fi
+  printf '%s%s\n' "${MAG}${B}" ""
+  printf '   ╔%s╗\n' "$bar"
+  printf '   ║%s║\n' "$(center "$w" "$title")"
+  printf '   ║%s║\n' "$(center "$w" "$sub")"
+  printf '   ╚%s╝\n' "$bar"
   printf '%s' "$R"
 }
 
