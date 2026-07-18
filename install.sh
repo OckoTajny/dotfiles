@@ -86,7 +86,7 @@ EOF
 }
 
 step=0
-say()  { step=$((step+1)); printf '\n%s[%s%d%s/5]%s %s%s%s\n' \
+say()  { step=$((step+1)); printf '\n%s[%s%d%s/6]%s %s%s%s\n' \
           "$DIM" "$CYN" "$step" "$DIM" "$R" "$B" "$1" "$R"; }
 ok()   { printf '   %s✓%s %s\n' "$GRN" "$R" "$1"; }
 warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
@@ -300,7 +300,29 @@ else
   warn "uv missing — skipping whisper-ctranslate2 (dictation engine)"
 fi
 
-# 5. PATH + apply default profile ---------------------------------------------
+# 5. login screen theme (only if SDDM is the active display manager — no
+#    bootloader/initramfs changes here, just an AUR package + a drop-in
+#    config file, so it's safe to always attempt and easy to undo) ------------
+if systemctl is-active --quiet sddm.service 2>/dev/null; then
+  say "Login screen (SDDM theme)"
+  if need yay; then
+    spin "installing sddm-astronaut-theme…" yay -S --needed --noconfirm sddm-astronaut-theme \
+      && ok "theme installed" \
+      || warn "sddm-astronaut-theme (AUR, log: $SPIN_LOG) — pick a theme manually"
+  fi
+  if [ -d /usr/share/sddm/themes/sddm-astronaut-theme ]; then
+    sudo mkdir -p /etc/sddm.conf.d
+    if grep -rq "Current=sddm-astronaut-theme" /etc/sddm.conf.d/*.conf 2>/dev/null; then
+      ok "SDDM theme already set"
+    else
+      printf '[Theme]\nCurrent=sddm-astronaut-theme\n' | sudo tee /etc/sddm.conf.d/theme.conf >/dev/null \
+        && ok "SDDM theme set → sddm-astronaut-theme (takes effect next login/reboot)" \
+        || warn "couldn't write /etc/sddm.conf.d/theme.conf"
+    fi
+  fi
+fi
+
+# 6. PATH + apply default profile ---------------------------------------------
 say "Finishing up"
 case ":$PATH:" in
   *":$BIN:"*) ;;
