@@ -44,7 +44,7 @@ AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
 OPTIONAL_APPS=(
   "kitty|terminal"
   "nautilus|file manager"
-  "brave-bin|browser"
+  "zen-browser-bin|browser (Zen)"
   "discord|Discord"
   "spotify|Spotify"
   "whatsapp-linux-desktop|WhatsApp"
@@ -86,7 +86,7 @@ EOF
 }
 
 step=0
-say()  { step=$((step+1)); printf '\n%s[%s%d%s/5]%s %s%s%s\n' \
+say()  { step=$((step+1)); printf '\n%s[%s%d%s/6]%s %s%s%s\n' \
           "$DIM" "$CYN" "$step" "$DIM" "$R" "$B" "$1" "$R"; }
 ok()   { printf '   %s✓%s %s\n' "$GRN" "$R" "$1"; }
 warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
@@ -94,6 +94,26 @@ err()  { printf '   %s✗%s %s\n' "$RED" "$R" "$1"; }
 fail() { err "$1"; FAILS+=("$1"); }            # record + keep going
 need() { command -v "$1" >/dev/null 2>&1; }
 have() { pacman -Qq "$1" >/dev/null 2>&1; }    # already installed?
+
+# Runs a long, otherwise-silent command with a spinner so it never looks
+# frozen (AUR builds and full-system upgrades can take minutes with zero
+# output). Sets SPIN_LOG to the captured output for the caller to inspect.
+spin() {
+  local label=$1; shift
+  local logf; logf=$(mktemp)
+  "$@" >"$logf" 2>&1 &
+  local pid=$! frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0 start=$SECONDS
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ -t 1 ]; then
+      printf '\r   %s%s%s %s %s(%ds)%s' "$CYN" "${frames:i++%${#frames}:1}" "$R" "$label" "$DIM" "$((SECONDS-start))" "$R"
+    fi
+    sleep 0.15
+  done
+  wait "$pid"; local rc=$?
+  [ -t 1 ] && printf '\r\033[K'
+  SPIN_LOG=$logf
+  return $rc
+}
 
 banner
 
@@ -130,10 +150,10 @@ say "Installing packages & apps"
 # newly-introduced packages via the have-guard)
 if [ "$MODE" = update ]; then
   if need yay; then
-    yay -Syu --noconfirm >/dev/null 2>&1 && ok "system & AUR packages upgraded" \
+    spin "upgrading system & AUR packages…" yay -Syu --noconfirm && ok "system & AUR packages upgraded" \
       || warn "package upgrade hit issues — see summary / re-run"
   else
-    sudo pacman -Syu --noconfirm >/dev/null 2>&1 && ok "system packages upgraded" \
+    spin "upgrading system packages…" sudo pacman -Syu --noconfirm && ok "system packages upgraded" \
       || warn "package upgrade hit issues"
   fi
 fi
@@ -147,9 +167,9 @@ if need yay; then
   printf '   %sAUR (caelestia shell stack)…%s\n' "$DIM" "$R"
   for p in "${AUR_PKGS[@]}"; do
     if have "$p"; then printf '   %s✓%s %s (installed)\n' "$GRN" "$R" "$p"; continue; fi
-    yay -S --needed --noconfirm "$p" >/dev/null 2>&1 \
+    spin "building $p (AUR)…" yay -S --needed --noconfirm "$p" \
       && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
-      || { printf '   %s⚠%s  %s (AUR)\n' "$YEL" "$R" "$p"; FAILS+=("aur: $p"); }
+      || { printf '   %s⚠%s  %s (AUR, log: %s)\n' "$YEL" "$R" "$p" "$SPIN_LOG"; tail -n5 "$SPIN_LOG" | sed 's/^/       /'; FAILS+=("aur: $p ($SPIN_LOG)"); }
   done
 else
   warn "no yay — skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
@@ -189,10 +209,9 @@ esac
 
 for p in "${chosen[@]}"; do
   if have "$p"; then printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; continue; fi
-  applog="/tmp/dotswap-install-$p.log"
-  if need yay; then yay -S --needed --noconfirm "$p" >"$applog" 2>&1; else sudo pacman -S --needed --noconfirm "$p" >"$applog" 2>&1; fi \
-    && { printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; rm -f "$applog"; } \
-    || { printf '   %s⚠%s  %s (log: %s)\n' "$YEL" "$R" "$p" "$applog"; tail -n5 "$applog" | sed 's/^/       /'; FAILS+=("app: $p ($applog)"); }
+  if need yay; then spin "installing $p…" yay -S --needed --noconfirm "$p"; else spin "installing $p…" sudo pacman -S --needed --noconfirm "$p"; fi \
+    && { printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; rm -f "$SPIN_LOG"; } \
+    || { printf '   %s⚠%s  %s (log: %s)\n' "$YEL" "$R" "$p" "$SPIN_LOG"; tail -n5 "$SPIN_LOG" | sed 's/^/       /'; FAILS+=("app: $p ($SPIN_LOG)"); }
 done
 
 # brrtfetch — the purple-glitch fastfetch bound to Super+Return (custom Go build)
@@ -281,7 +300,51 @@ else
   warn "uv missing — skipping whisper-ctranslate2 (dictation engine)"
 fi
 
-# 5. PATH + apply default profile ---------------------------------------------
+# 5. boot splash (Plymouth) ----------------------------------------------------
+say "Boot splash (Plymouth)"
+sudo pacman -S --needed --noconfirm plymouth >/dev/null 2>&1 || fail "install plymouth"
+if need yay; then
+  spin "installing plymouth theme…" yay -S --needed --noconfirm catppuccin-plymouth-theme-git \
+    && ok "theme installed" \
+    || warn "plymouth theme (AUR) — pick one at aur.archlinux.org and: sudo plymouth-set-default-theme -R <name>"
+fi
+if need plymouth-set-default-theme; then
+  THEME=$(plymouth-set-default-theme -l 2>/dev/null | grep -i catppuccin | head -1)
+  if [ -n "$THEME" ]; then
+    sudo plymouth-set-default-theme -R "$THEME" >/dev/null 2>&1 \
+      && ok "default theme → $THEME (initramfs rebuilt)" \
+      || warn "set default theme: sudo plymouth-set-default-theme -R $THEME"
+  fi
+fi
+# mkinitcpio hook (only if plymouth-set-default-theme -R above didn't already add it)
+if [ -f /etc/mkinitcpio.conf ] && ! grep -q '\bplymouth\b' /etc/mkinitcpio.conf; then
+  sudo cp /etc/mkinitcpio.conf /etc/mkinitcpio.conf.bak-dotswap
+  sudo sed -i -E 's/^(HOOKS=\([^)]*)\budev\b/\1udev plymouth/' /etc/mkinitcpio.conf \
+    && sudo mkinitcpio -P >/dev/null 2>&1 \
+    && ok "mkinitcpio: plymouth hook added" \
+    || warn "add 'plymouth' to HOOKS in /etc/mkinitcpio.conf (after udev) and run: sudo mkinitcpio -P"
+fi
+# kernel cmdline needs 'splash' to actually show the theme at boot — auto-set
+# only for the two bootloaders we can identify unambiguously; back up first.
+splash_done=0
+if [ -f /etc/default/grub ] && need grub-mkconfig; then
+  sudo cp /etc/default/grub /etc/default/grub.bak-dotswap
+  grep -q 'splash' /etc/default/grub \
+    || sudo sed -i -E 's/(GRUB_CMDLINE_LINUX_DEFAULT=")([^"]*)"/\1\2 splash quiet"/' /etc/default/grub
+  sudo grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 \
+    && { ok "GRUB: splash enabled"; splash_done=1; } \
+    || warn "grub-mkconfig failed — add 'splash' to GRUB_CMDLINE_LINUX_DEFAULT and re-run grub-mkconfig"
+elif ls /boot/loader/entries/*.conf >/dev/null 2>&1; then
+  for f in /boot/loader/entries/*.conf; do
+    sudo cp "$f" "$f.bak-dotswap"
+    grep -q '\bsplash\b' "$f" || sudo sed -i -E '/^options /s/$/ splash quiet/' "$f"
+  done
+  ok "systemd-boot: splash enabled"
+  splash_done=1
+fi
+[ "$splash_done" -eq 1 ] || warn "unknown bootloader (Limine?) — add 'splash quiet' to your kernel cmdline manually"
+
+# 6. PATH + apply default profile ---------------------------------------------
 say "Finishing up"
 case ":$PATH:" in
   *":$BIN:"*) ;;
