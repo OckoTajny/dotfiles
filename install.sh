@@ -189,9 +189,10 @@ esac
 
 for p in "${chosen[@]}"; do
   if have "$p"; then printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; continue; fi
-  if need yay; then yay -S --needed --noconfirm "$p" >/dev/null 2>&1; else sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1; fi \
-    && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
-    || { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$p"; FAILS+=("app: $p"); }
+  applog="/tmp/dotswap-install-$p.log"
+  if need yay; then yay -S --needed --noconfirm "$p" >"$applog" 2>&1; else sudo pacman -S --needed --noconfirm "$p" >"$applog" 2>&1; fi \
+    && { printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; rm -f "$applog"; } \
+    || { printf '   %s⚠%s  %s (log: %s)\n' "$YEL" "$R" "$p" "$applog"; tail -n5 "$applog" | sed 's/^/       /'; FAILS+=("app: $p ($applog)"); }
 done
 
 # brrtfetch — the purple-glitch fastfetch bound to Super+Return (custom Go build)
