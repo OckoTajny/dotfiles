@@ -49,7 +49,7 @@ OPTIONAL_APPS=(
   "spotify|Spotify"
   "whatsapp-linux-desktop|WhatsApp"
   "jetbrains-toolbox|JetBrains Toolbox (IntelliJ)"
-  "onlyoffice-desktopeditors|OnlyOffice"
+  "onlyoffice-bin|OnlyOffice"
 )
 
 FAILS=()
