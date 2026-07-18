@@ -363,6 +363,9 @@ fi
 
 # --- summary ------------------------------------------------------------------
 echo
+printf '%s%sreboot recommended%s — the boot splash, GRUB/initramfs and default-shell\n' "$YEL" "$B" "$R"
+printf '  changes above only take effect after a reboot; %shyprctl reload%s (printed above)\n' "$B" "$R"
+printf '  only refreshes the compositor for rice switches, not this first-time setup.\n\n'
 if [ "${#FAILS[@]}" -eq 0 ]; then
   printf '%s%s✓ all done.%s cycle rices with %sCtrl+Shift+Super+Left/Right%s, or %sdotswap use <profile>%s\n\n' \
     "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
