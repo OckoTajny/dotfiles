@@ -86,7 +86,7 @@ EOF
 }
 
 step=0
-say()  { step=$((step+1)); printf '\n%s[%s%d%s/6]%s %s%s%s\n' \
+say()  { step=$((step+1)); printf '\n%s[%s%d%s/5]%s %s%s%s\n' \
           "$DIM" "$CYN" "$step" "$DIM" "$R" "$B" "$1" "$R"; }
 ok()   { printf '   %s✓%s %s\n' "$GRN" "$R" "$1"; }
 warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
@@ -300,51 +300,7 @@ else
   warn "uv missing — skipping whisper-ctranslate2 (dictation engine)"
 fi
 
-# 5. boot splash (Plymouth) ----------------------------------------------------
-say "Boot splash (Plymouth)"
-sudo pacman -S --needed --noconfirm plymouth >/dev/null 2>&1 || fail "install plymouth"
-if need yay; then
-  spin "installing plymouth theme…" yay -S --needed --noconfirm catppuccin-plymouth-theme-git \
-    && ok "theme installed" \
-    || warn "plymouth theme (AUR) — pick one at aur.archlinux.org and: sudo plymouth-set-default-theme -R <name>"
-fi
-if need plymouth-set-default-theme; then
-  THEME=$(plymouth-set-default-theme -l 2>/dev/null | grep -i catppuccin | head -1)
-  if [ -n "$THEME" ]; then
-    sudo plymouth-set-default-theme -R "$THEME" >/dev/null 2>&1 \
-      && ok "default theme → $THEME (initramfs rebuilt)" \
-      || warn "set default theme: sudo plymouth-set-default-theme -R $THEME"
-  fi
-fi
-# mkinitcpio hook (only if plymouth-set-default-theme -R above didn't already add it)
-if [ -f /etc/mkinitcpio.conf ] && ! grep -q '\bplymouth\b' /etc/mkinitcpio.conf; then
-  sudo cp /etc/mkinitcpio.conf /etc/mkinitcpio.conf.bak-dotswap
-  sudo sed -i -E 's/^(HOOKS=\([^)]*)\budev\b/\1udev plymouth/' /etc/mkinitcpio.conf \
-    && sudo mkinitcpio -P >/dev/null 2>&1 \
-    && ok "mkinitcpio: plymouth hook added" \
-    || warn "add 'plymouth' to HOOKS in /etc/mkinitcpio.conf (after udev) and run: sudo mkinitcpio -P"
-fi
-# kernel cmdline needs 'splash' to actually show the theme at boot — auto-set
-# only for the two bootloaders we can identify unambiguously; back up first.
-splash_done=0
-if [ -f /etc/default/grub ] && need grub-mkconfig; then
-  sudo cp /etc/default/grub /etc/default/grub.bak-dotswap
-  grep -q 'splash' /etc/default/grub \
-    || sudo sed -i -E 's/(GRUB_CMDLINE_LINUX_DEFAULT=")([^"]*)"/\1\2 splash quiet"/' /etc/default/grub
-  sudo grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 \
-    && { ok "GRUB: splash enabled"; splash_done=1; } \
-    || warn "grub-mkconfig failed — add 'splash' to GRUB_CMDLINE_LINUX_DEFAULT and re-run grub-mkconfig"
-elif ls /boot/loader/entries/*.conf >/dev/null 2>&1; then
-  for f in /boot/loader/entries/*.conf; do
-    sudo cp "$f" "$f.bak-dotswap"
-    grep -q '\bsplash\b' "$f" || sudo sed -i -E '/^options /s/$/ splash quiet/' "$f"
-  done
-  ok "systemd-boot: splash enabled"
-  splash_done=1
-fi
-[ "$splash_done" -eq 1 ] || warn "unknown bootloader (Limine?) — add 'splash quiet' to your kernel cmdline manually"
-
-# 6. PATH + apply default profile ---------------------------------------------
+# 5. PATH + apply default profile ---------------------------------------------
 say "Finishing up"
 case ":$PATH:" in
   *":$BIN:"*) ;;
@@ -363,9 +319,9 @@ fi
 
 # --- summary ------------------------------------------------------------------
 echo
-printf '%s%sreboot recommended%s — the boot splash, GRUB/initramfs and default-shell\n' "$YEL" "$B" "$R"
-printf '  changes above only take effect after a reboot; %shyprctl reload%s (printed above)\n' "$B" "$R"
-printf '  only refreshes the compositor for rice switches, not this first-time setup.\n\n'
+printf '%s%sreboot or re-login recommended%s — the default-shell change above only takes\n' "$YEL" "$B" "$R"
+printf '  effect after that; %shyprctl reload%s (printed above) only refreshes the\n' "$B" "$R"
+printf '  compositor for rice switches, not this first-time setup.\n\n'
 if [ "${#FAILS[@]}" -eq 0 ]; then
   printf '%s%s✓ all done.%s cycle rices with %sCtrl+Shift+Super+Left/Right%s, or %sdotswap use <profile>%s\n\n' \
     "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
