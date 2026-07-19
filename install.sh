@@ -23,20 +23,40 @@ DEFAULT_PROFILE=ambxst
 # unwinding those safely on an arbitrary machine isn't something an
 # unattended script should gamble on.
 MODE=install
+MODE_EXPLICIT=0
 for a in "$@"; do
   case "$a" in
-    --update|update|-u) MODE=update ;;
-    --doctor|doctor|--diagnose|diagnose) MODE=doctor ;;
-    --uninstall|uninstall) MODE=uninstall ;;
+    --update|update|-u) MODE=update; MODE_EXPLICIT=1 ;;
+    --doctor|doctor|--diagnose|diagnose) MODE=doctor; MODE_EXPLICIT=1 ;;
+    --uninstall|uninstall) MODE=uninstall; MODE_EXPLICIT=1 ;;
     --help|-h)
       echo "Usage: install.sh [--update|--doctor|--uninstall]"
-      echo "  (no flag)   fresh install"
+      echo "  (no flag)   asks interactively (install/update/doctor) if run in a terminal"
       echo "  --update    pull new packages/tools, configs untouched"
       echo "  --doctor    diagnose a broken rice (session, processes, config) - read-only"
       echo "  --uninstall remove dotswap's own tools/profiles/state (not packages/configs)"
       exit 0 ;;
   esac
 done
+
+# No mode given on the command line: ask, rather than silently assuming a
+# fresh install (this is also how a re-run picks up "did it actually work?").
+# Uninstall stays flag-only — too destructive to hand out as a numbered
+# option someone can pick by reflex.
+if [ "$MODE_EXPLICIT" -eq 0 ] && [ -r /dev/tty ]; then
+  printf 'What do you want to do?\n'
+  printf '  1) Install (fresh setup)\n'
+  printf '  2) Update (pull new packages/tools, configs untouched)\n'
+  printf '  3) Doctor (diagnose a broken rice, read-only)\n'
+  printf 'Pick [1]: '
+  choice=1
+  IFS= read -r choice </dev/tty || choice=1
+  case "$(printf '%s' "$choice" | tr -d '[:space:]')" in
+    2) MODE=update ;;
+    3) MODE=doctor ;;
+    *) MODE=install ;;
+  esac
+fi
 
 CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq
@@ -491,5 +511,14 @@ else
   for f in "${FAILS[@]}"; do printf '   %s•%s %s\n' "$YEL" "$R" "$f"; done
   printf '   %sFix the above (often: bad mirror → %ssudo pacman -Syy%s%s) and re-run this script — it is safe to repeat.%s\n\n' \
     "$DIM" "$B" "$R" "$DIM" "$R"
+fi
+
+if [ -r /dev/tty ]; then
+  printf 'Reboot now? [y/N] '
+  reboot_ans=no
+  IFS= read -r reboot_ans </dev/tty || reboot_ans=no
+  case "$(printf '%s' "$reboot_ans" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) systemctl reboot || sudo reboot ;;
+  esac
 fi
 exit 0
