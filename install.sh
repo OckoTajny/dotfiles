@@ -195,6 +195,14 @@ elif [ -r /dev/tty ]; then
 else
   warn "no terminal — install Ambxst manually: curl -L get.axeni.de/ambxst | sh"
 fi
+if need ambxst; then
+  # Wires the hyprland.conf import (idempotent — matches what's already
+  # tracked) and is what actually makes Ambxst autostart on future logins;
+  # installing the binary alone was not enough on a real run.
+  ambxst install hyprland >/dev/null 2>&1 || true
+  ambxst & disown
+  ok "Ambxst started (will autostart on future logins)"
+fi
 
 # optional desktop apps the keybinds launch — the user chooses which to install
 printf '   %sApps (keybind targets) — optional%s\n' "$DIM" "$R"
