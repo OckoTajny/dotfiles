@@ -262,6 +262,21 @@ run_uninstall() {
 
 banner
 
+# Ask for sudo up front. Several steps below run sudo inside spin(), which
+# backgrounds the command with stdout/stderr redirected to a log file — but
+# sudo's password prompt bypasses that redirection on purpose (it writes
+# straight to /dev/tty so it's never silently swallowed), so it would
+# otherwise print mid-spinner and get garbled together with the \r redraws.
+# Asking once here, outside any spinner, avoids that entirely. A background
+# keep-alive stops the cached credential from expiring during a long AUR
+# build further into the script.
+if [ -r /dev/tty ]; then
+  sudo -v < /dev/tty || true
+  ( while true; do sleep 60; sudo -n true 2>/dev/null || exit; kill -0 $$ 2>/dev/null || exit; done ) &
+  SUDO_KEEPALIVE_PID=$!
+  trap '[ -n "${SUDO_KEEPALIVE_PID:-}" ] && kill "$SUDO_KEEPALIVE_PID" 2>/dev/null' EXIT
+fi
+
 # 1. base tooling --------------------------------------------------------------
 say "Checking base tools"
 # clear a stale pacman lock (only if no pacman is actually running)
