@@ -262,9 +262,11 @@ if [ -f /var/lib/pacman/db.lck ] && ! pgrep -x pacman >/dev/null 2>&1; then
   warn "stale pacman lock — removing /var/lib/pacman/db.lck"
   sudo rm -f /var/lib/pacman/db.lck || true
 fi
-# refresh package databases (fixes 'unrecognized archive format' / unsynced db)
-if ! sudo pacman -Syy --noconfirm; then
-  warn "couldn't refresh pacman db (mirror down?) — run 'sudo pacman -Syy' and retry"
+# refresh package databases + full system upgrade upfront (fixes 'unrecognized
+# archive format' / unsynced db, and avoids partial-upgrade breakage from
+# installing new packages against a stale system later in the script)
+if ! spin "syncing & upgrading system packages…" sudo pacman -Syyu --noconfirm; then
+  warn "couldn't sync/upgrade (mirror down?) — run 'sudo pacman -Syyu' and retry"
 fi
 need git     || sudo pacman -S --needed --noconfirm git     || fail "install git"
 need chezmoi || sudo pacman -S --needed --noconfirm chezmoi || fail "install chezmoi"
@@ -512,7 +514,7 @@ if [ "${#FAILS[@]}" -eq 0 ]; then
 else
   printf '%s%s⚠ finished with %d issue(s):%s\n' "$YEL" "$B" "${#FAILS[@]}" "$R"
   for f in "${FAILS[@]}"; do printf '   %s•%s %s\n' "$YEL" "$R" "$f"; done
-  printf '   %sFix the above (often: bad mirror → %ssudo pacman -Syy%s%s) and re-run this script — it is safe to repeat.%s\n\n' \
+  printf '   %sFix the above (often: bad mirror → %ssudo pacman -Syyu%s%s) and re-run this script — it is safe to repeat.%s\n\n' \
     "$DIM" "$B" "$R" "$DIM" "$R"
 fi
 
