@@ -172,14 +172,6 @@ enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER"]
-key = "C"
-dispatcher = "killactive"
-argument = ""
-flags = ""
-enabled = true
-
-[[keybinds]]
-modifiers = ["SUPER"]
 key = "1"
 dispatcher = "workspace"
 argument = "1"

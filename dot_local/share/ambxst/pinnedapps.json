@@ -1,10 +1,9 @@
 {
     "apps": [
         "brave-browser",
-        "jetbrains-idea",
-        "brave-hnpfjngllnobngcgfapefoaidbinmjnm-Default",
         "discord",
         "kitty",
-        "Spotify"
+        "Spotify",
+        "zen"
     ]
 }
