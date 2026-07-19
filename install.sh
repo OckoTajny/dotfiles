@@ -271,7 +271,12 @@ banner
 # keep-alive stops the cached credential from expiring during a long AUR
 # build further into the script.
 if [ -r /dev/tty ]; then
-  sudo -v < /dev/tty || true
+  if ! sudo -v < /dev/tty; then
+    err "sudo authentication failed — wrong password 3x, or a keyboard-layout"
+    err "mismatch (cz/us) while typing it. Fix that first, then re-run:"
+    err "  curl -fsSL jachym.djt-group.com/install | bash"
+    exit 1
+  fi
   ( while true; do sleep 60; sudo -n true 2>/dev/null || exit; kill -0 $$ 2>/dev/null || exit; done ) &
   SUDO_KEEPALIVE_PID=$!
   trap '[ -n "${SUDO_KEEPALIVE_PID:-}" ] && kill "$SUDO_KEEPALIVE_PID" 2>/dev/null' EXIT
