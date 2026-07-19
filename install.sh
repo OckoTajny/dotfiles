@@ -185,10 +185,15 @@ fi
 # so without this, Hyprland loads fine but no bar/dock ever appears.
 if need ambxst; then
   ok "Ambxst present"
-else
-  spin "installing Ambxst shell…" bash -c "curl -fsSL get.axeni.de/ambxst | sh" \
+elif [ -r /dev/tty ]; then
+  # < /dev/tty: this script's own stdin is the curl|bash pipe (already
+  # exhausted) — without a real tty attached, Ambxst's installer can't
+  # read anything it needs to and silently no-ops.
+  spin "installing Ambxst shell…" bash -c "curl -L get.axeni.de/ambxst | sh" < /dev/tty \
     && ok "Ambxst installed" \
     || { warn "Ambxst install failed (log: $SPIN_LOG) — install manually: curl -L get.axeni.de/ambxst | sh"; FAILS+=("ambxst: install ($SPIN_LOG)"); }
+else
+  warn "no terminal — install Ambxst manually: curl -L get.axeni.de/ambxst | sh"
 fi
 
 # optional desktop apps the keybinds launch — the user chooses which to install
