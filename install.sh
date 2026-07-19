@@ -14,6 +14,14 @@ PROFILES=(ambxst illogical win11 caelestia)
 declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [caelestia]=caelestia )
 DEFAULT_PROFILE=ambxst
 
+# `[ -r /dev/tty ]` is a false-positive test here: it passes even with no
+# controlling terminal (curl|bash with stdin redirected elsewhere), and the
+# later `read ... </dev/tty` then fails with "No such device or address" -
+# real-world symptom was `sudo -v < /dev/tty` failing with a confusing
+# wrong-password-looking error when there was no tty at all. Testing an
+# actual open is the only way to know for sure.
+has_tty() { { : </dev/tty; } 2>/dev/null; }
+
 # MODE: install (default) writes configs; update only pulls in what's new
 # (updated packages, new tools) and NEVER re-applies configs — so the user's
 # ~/.config (keybinds, tweaks) is left untouched. doctor diagnoses a broken
@@ -44,7 +52,7 @@ done
 # Uninstall is in the menu too, but run_uninstall() below still asks its
 # own separate y/N before touching anything — picking "4" isn't enough
 # by itself to delete anything.
-if [ "$MODE_EXPLICIT" -eq 0 ] && [ -r /dev/tty ]; then
+if [ "$MODE_EXPLICIT" -eq 0 ] && has_tty; then
   printf 'What do you want to do?\n'
   printf '  1) Install (fresh setup)\n'
   printf '  2) Update (pull new packages/tools, configs untouched)\n'
@@ -172,6 +180,57 @@ run_doctor() {
   printf '   current: XDG_CURRENT_DESKTOP=%s DESKTOP_SESSION=%s\n' \
     "${XDG_CURRENT_DESKTOP:-?}" "${DESKTOP_SESSION:-?}"
 
+  section "Hyprland config provider"
+  # Hyprland 0.55+ on CachyOS picks a config provider at startup: if
+  # ~/.config/hypr/hyprland.lua exists (CachyOS's cachyos-hypr-noctalia
+  # skeleton ships one), it's used INSTEAD of hyprland.conf and our whole
+  # .conf tree (this repo's target) is silently ignored — no error, no
+  # keybind. Real-world finding: install looked 100% successful, rice just
+  # never worked. `hyprctl keyword` also doesn't work under the lua
+  # provider ("keyword can't work with non-legacy parsers") — only
+  # `hyprctl eval` does runtime changes there.
+  provider=$(hyprctl systeminfo 2>/dev/null | grep -i configProvider | sed 's/.*: *//' | tr -d '[:space:]')
+  if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
+    err "~/.config/hypr/hyprland.lua exists — dotswap's .conf tree may be ignored"
+    err "  fix: mv ~/.config/hypr/hyprland.lua{,.disabled} then re-login (NOT hyprctl reload)"
+  fi
+  # Confirmed good value (normal .conf-based session): "hyprlang". The only
+  # confirmed-bad value from the field is "lua" (CachyOS's alternate
+  # provider). Anything else unrecognized is printed as-is, not asserted
+  # broken — better an unlabeled value than a false "BROKEN" here.
+  case "$provider" in
+    ""|*hyprlang*) ok "configProvider: ${provider:-hyprlang}" ;;
+    *lua*) err "configProvider: $provider — dotswap's hyprland.conf/custom/keybinds.conf are NOT active"
+       err "  fix: mv ~/.config/hypr/hyprland.lua{,.disabled} then re-login (NOT hyprctl reload)" ;;
+    *) warn "configProvider: $provider (unrecognized — verify manually if binds seem missing)" ;;
+  esac
+
+  section "Monitor config applied"
+  MON_CONF="$HOME/.config/hypr/monitors.conf"
+  if [ -f "$MON_CONF" ] && need jq; then
+    mon_mismatch=0
+    while IFS= read -r line; do
+      case "$line" in monitor[[:space:]]*=*) ;; *) continue ;; esac
+      rest=${line#*=}
+      mname=$(printf '%s' "$rest" | cut -d, -f1 | tr -d '[:space:]')
+      mpos=$(printf '%s' "$rest" | cut -d, -f3 | tr -d '[:space:]')
+      [ -z "$mname" ] && continue
+      case "$mpos" in *x*) ;; *) continue ;; esac   # "auto" or anything non-numeric: nothing to compare
+      want_x=${mpos%x*}; want_y=${mpos#*x}
+      got=$(hyprctl monitors -j 2>/dev/null | jq -r --arg n "$mname" '.[] | select(.name==$n) | "\(.x)x\(.y)"' 2>/dev/null)
+      if [ -z "$got" ]; then
+        warn "monitor '$mname' (monitors.conf) not found in hyprctl monitors -j"; mon_mismatch=1
+      elif [ "$got" != "${want_x}x${want_y}" ]; then
+        warn "monitor '$mname' position mismatch: monitors.conf wants ${want_x}x${want_y}, hyprctl reports $got"
+        warn "  (config not applied — often the same lua-provider issue above)"
+        mon_mismatch=1
+      fi
+    done < "$MON_CONF"
+    [ "$mon_mismatch" -eq 0 ] && ok "monitors.conf positions match hyprctl monitors -j"
+  else
+    warn "no ~/.config/hypr/monitors.conf or jq missing — skipping monitor-position check"
+  fi
+
   section "dotswap profile"
   if [ -f "$HOME/.local/state/dotswap-profile" ]; then
     ok "active profile: $(cat "$HOME/.local/state/dotswap-profile")"
@@ -208,6 +267,12 @@ run_doctor() {
     fi
   done
   [ "$found" -eq 1 ] || warn "none of ambxst/quickshell/waybar are running"
+  qs_count=$(pgrep -cf "qs -p .*shell\.qml" 2>/dev/null || echo 0)
+  if [ "$qs_count" -gt 1 ]; then
+    err "$qs_count Ambxst shell instances running (qs -p .../shell.qml) — should be exactly 1"
+    err "  usually: tracked hyprland.conf/hyprland.lua exec-once + ambxst.service both starting it"
+    err "  fix: pkill -f 'shell.qml' then let systemd --user restart ambxst.service alone"
+  fi
 
   section "systemd --user units (hypr/wayb/ambxst/cachy)"
   systemctl --user list-units --type=service --state=running 2>/dev/null \
@@ -235,7 +300,7 @@ run_uninstall() {
   echo "unattended script shouldn't gamble on unwinding."
   echo
   local ans=no
-  if [ -r /dev/tty ]; then
+  if has_tty; then
     printf 'Proceed? [y/N] '
     IFS= read -r ans </dev/tty || ans=no
   else
@@ -262,6 +327,19 @@ run_uninstall() {
 
 banner
 
+# CachyOS 0.55+ Hyprland picks its config provider at startup: if
+# ~/.config/hypr/hyprland.lua exists (the cachyos-hypr-noctalia skeleton
+# ships one), it's used INSTEAD of hyprland.conf and this repo's whole .conf
+# tree loads with zero effect and zero error — install looks 100% successful,
+# but no keybind from it is ever active. Disable it so the next Hyprland
+# start picks up hyprland.conf instead.
+if [ "$MODE" != update ] && [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
+  mv "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/hypr/hyprland.lua.disabled"
+  warn "found ~/.config/hypr/hyprland.lua (CachyOS's config) — disabled it (renamed .disabled)"
+  warn "the config provider is picked at Hyprland startup, so this needs a re-login/reboot to take effect"
+  warn "do NOT run 'hyprctl reload' before then — reload in a running lua session wipes all binds"
+fi
+
 # Ask for sudo up front. Several steps below run sudo inside spin(), which
 # backgrounds the command with stdout/stderr redirected to a log file — but
 # sudo's password prompt bypasses that redirection on purpose (it writes
@@ -270,7 +348,7 @@ banner
 # Asking once here, outside any spinner, avoids that entirely. A background
 # keep-alive stops the cached credential from expiring during a long AUR
 # build further into the script.
-if [ -r /dev/tty ]; then
+if has_tty; then
   if ! sudo -v < /dev/tty; then
     err "sudo authentication failed — wrong password 3x, or a keyboard-layout"
     err "mismatch (cz/us) while typing it. Fix that first, then re-run:"
@@ -347,7 +425,7 @@ fi
 # so without this, Hyprland loads fine but no bar/dock ever appears.
 if need ambxst; then
   ok "Ambxst present"
-elif [ -r /dev/tty ]; then
+elif has_tty; then
   # < /dev/tty: this script's own stdin is the curl|bash pipe (already
   # exhausted) — without a real tty attached, Ambxst's installer can't
   # read anything it needs to and silently no-ops.
@@ -361,6 +439,15 @@ if need ambxst; then
   # Wires the hyprland.conf import (idempotent, matches what's already
   # tracked) — kept for anyone on a plain (non-uwsm) Hyprland session.
   ambxst install hyprland >/dev/null 2>&1 || true
+
+  # `ambxst install hyprland` regenerates ~/.local/share/ambxst/hyprland.conf
+  # from scratch and reintroduces `exec-once = ambxst` (the tracked copy
+  # ships it commented out on purpose) — disable it again so the systemd
+  # unit below stays the ONLY autostart path. Without this, two ambxst/
+  # quickshell instances end up running at once (real-world finding: ~3.3GB
+  # RAM, duplicate loginlock/sleep_monitor scripts).
+  sed -i 's/^exec-once = ambxst$/# exec-once = ambxst  # disabled: ambxst.service (systemd --user) is the sole autostart mechanism/' \
+    "$HOME/.local/share/ambxst/hyprland.conf" 2>/dev/null || true
 
   # Real-world finding: on a uwsm-managed session, hyprland.conf's
   # `exec-once = ambxst` (sourced from ~/.local/share/ambxst/hyprland.conf)
@@ -401,7 +488,7 @@ for entry in "${OPTIONAL_APPS[@]}"; do
 done
 # read the choice from the real terminal (stdin is the piped script under curl|bash)
 ans=all
-if [ -r /dev/tty ]; then
+if has_tty; then
   printf '   %sPick numbers (e.g. "1 3 5"), %sa%s%s=all, %sn%s%s=none [all]:%s ' \
     "$B" "$GRN" "$R" "$B" "$RED" "$R" "$B" "$R"
   IFS= read -r ans </dev/tty || ans=all
@@ -594,7 +681,7 @@ else
     "$DIM" "$B" "$R" "$DIM" "$R"
 fi
 
-if [ -r /dev/tty ]; then
+if has_tty; then
   printf 'Reboot now? [y/N] '
   reboot_ans=no
   IFS= read -r reboot_ans </dev/tty || reboot_ans=no
