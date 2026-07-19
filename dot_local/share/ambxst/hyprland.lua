@@ -3,7 +3,7 @@
 -- ▄▀  ██▀██ ██ ██ ▀████   ██   ██▄▄▄ 
 
 hl.on("hyprland.start", function()
-    hl.exec_cmd("ambxst")
+    -- hl.exec_cmd("ambxst")  -- disabled: systemd --user ambxst.service is the sole autostart mechanism (avoids double-start under uwsm)
 end)
 
 
