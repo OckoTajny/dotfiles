@@ -192,6 +192,13 @@ run_doctor() {
   else
     warn "ambxst not installed — run: curl -L get.axeni.de/ambxst | sh"
   fi
+  if systemctl --user is-enabled ambxst.service >/dev/null 2>&1; then
+    ok "ambxst.service enabled ($(systemctl --user is-active ambxst.service 2>/dev/null))"
+    systemctl --user is-active --quiet ambxst.service \
+      || journalctl --user -u ambxst.service -b --no-pager 2>/dev/null | tail -15 | sed 's/^/   /'
+  else
+    warn "ambxst.service not enabled — run: systemctl --user enable --now ambxst.service"
+  fi
 
   section "Running shell/bar processes"
   local found=0
@@ -331,12 +338,37 @@ else
   warn "no terminal — install Ambxst manually: curl -L get.axeni.de/ambxst | sh"
 fi
 if need ambxst; then
-  # Wires the hyprland.conf import (idempotent — matches what's already
-  # tracked) and is what actually makes Ambxst autostart on future logins;
-  # installing the binary alone was not enough on a real run.
+  # Wires the hyprland.conf import (idempotent, matches what's already
+  # tracked) — kept for anyone on a plain (non-uwsm) Hyprland session.
   ambxst install hyprland >/dev/null 2>&1 || true
-  ambxst & disown
-  ok "Ambxst started (will autostart on future logins)"
+
+  # Real-world finding: on a uwsm-managed session, hyprland.conf's
+  # `exec-once = ambxst` (sourced from ~/.local/share/ambxst/hyprland.conf)
+  # silently never fired after reboot — no ambxst/quickshell process, and
+  # nothing in hyprland.log to explain why. uwsm sessions are systemd-native,
+  # so give Ambxst a proper systemd --user unit tied to graphical-session.target
+  # instead: same mechanism uwsm itself uses, and failures are actually
+  # visible via `journalctl --user -u ambxst`.
+  AMBXST_BIN=$(command -v ambxst)
+  mkdir -p "$HOME/.config/systemd/user"
+  cat > "$HOME/.config/systemd/user/ambxst.service" <<EOF
+[Unit]
+Description=Ambxst shell
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=$AMBXST_BIN
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target
+EOF
+  systemctl --user daemon-reload 2>/dev/null
+  systemctl --user enable --now ambxst.service >/dev/null 2>&1 \
+    && ok "Ambxst started via systemd --user (autostarts on future logins)" \
+    || warn "couldn't enable ambxst.service — run: systemctl --user enable --now ambxst.service"
 fi
 
 # optional desktop apps the keybinds launch — the user chooses which to install
@@ -468,7 +500,7 @@ fi
 #    bootloader/initramfs changes here, just an AUR package + a drop-in
 #    config file, so it's safe to always attempt and easy to undo) ------------
 if systemctl is-active --quiet sddm.service 2>/dev/null; then
-  say "Login screen (SDDM theme)"
+  say "Login screen (SDDM theme + default session)"
   if need yay; then
     spin "installing sddm-astronaut-theme…" yay -S --needed --noconfirm sddm-astronaut-theme \
       && ok "theme installed" \
@@ -483,6 +515,30 @@ if systemctl is-active --quiet sddm.service 2>/dev/null; then
         && ok "SDDM theme set → sddm-astronaut-theme (takes effect next login/reboot)" \
         || warn "couldn't write /etc/sddm.conf.d/theme.conf"
     fi
+  fi
+
+  # Force Hyprland as this user's default login session via AccountsService.
+  # CachyOS ships gnome/plasma/niri session files alongside Hyprland; on a
+  # fresh account SDDM has no remembered choice yet and silently falls back
+  # to whichever session it picks by default (observed: alphabetically-first
+  # "gnome") — indistinguishable from a broken rice unless you notice the
+  # session picker on the login screen. Don't rely on that being noticed.
+  ACCOUNTS_FILE="/var/lib/AccountsService/users/$USER"
+  if [ -f "$ACCOUNTS_FILE" ]; then
+    sudo cp "$ACCOUNTS_FILE" "$ACCOUNTS_FILE.bak-dotswap"
+    for key in Session XSession; do
+      if sudo grep -q "^$key=" "$ACCOUNTS_FILE"; then
+        sudo sed -i "s/^$key=.*/$key=hyprland/" "$ACCOUNTS_FILE"
+      else
+        sudo sed -i "/^\[User\]/a $key=hyprland" "$ACCOUNTS_FILE"
+      fi
+    done
+    ok "default login session → hyprland (AccountsService)"
+  else
+    sudo mkdir -p /var/lib/AccountsService/users
+    printf '[User]\nSession=hyprland\nXSession=hyprland\n' | sudo tee "$ACCOUNTS_FILE" >/dev/null \
+      && ok "default login session → hyprland (AccountsService)" \
+      || warn "couldn't write $ACCOUNTS_FILE"
   fi
 fi
 
