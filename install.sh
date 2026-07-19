@@ -16,12 +16,25 @@ DEFAULT_PROFILE=ambxst
 
 # MODE: install (default) writes configs; update only pulls in what's new
 # (updated packages, new tools) and NEVER re-applies configs — so the user's
-# ~/.config (keybinds, tweaks) is left untouched.
+# ~/.config (keybinds, tweaks) is left untouched. doctor diagnoses a broken
+# setup (session/process/config checks) without changing anything. uninstall
+# removes what dotswap itself put down (tools, profile sources, state) —
+# it does NOT touch installed packages, hyprland.conf, or Ambxst, since
+# unwinding those safely on an arbitrary machine isn't something an
+# unattended script should gamble on.
 MODE=install
 for a in "$@"; do
   case "$a" in
     --update|update|-u) MODE=update ;;
-    --help|-h) echo "Usage: install.sh [--update]"; exit 0 ;;
+    --doctor|doctor|--diagnose|diagnose) MODE=doctor ;;
+    --uninstall|uninstall) MODE=uninstall ;;
+    --help|-h)
+      echo "Usage: install.sh [--update|--doctor|--uninstall]"
+      echo "  (no flag)   fresh install"
+      echo "  --update    pull new packages/tools, configs untouched"
+      echo "  --doctor    diagnose a broken rice (session, processes, config) - read-only"
+      echo "  --uninstall remove dotswap's own tools/profiles/state (not packages/configs)"
+      exit 0 ;;
   esac
 done
 
@@ -119,6 +132,103 @@ spin() {
   SPIN_LOG=$logf
   return $rc
 }
+
+# --- doctor: read-only diagnosis of a broken rice, no changes made -----------
+run_doctor() {
+  printf '%s%sdotswap doctor%s — read-only, changes nothing\n\n' "$B" "$MAG" "$R"
+
+  section() { printf '\n%s%s%s\n' "$B" "$1" "$R"; }
+
+  section "Login sessions"
+  if [ -d /usr/share/wayland-sessions ]; then
+    grep -H '^Exec=' /usr/share/wayland-sessions/*.desktop 2>/dev/null \
+      | sed 's/^/   /' || warn "no wayland-sessions found"
+  else
+    warn "/usr/share/wayland-sessions missing"
+  fi
+  printf '   current: XDG_CURRENT_DESKTOP=%s DESKTOP_SESSION=%s\n' \
+    "${XDG_CURRENT_DESKTOP:-?}" "${DESKTOP_SESSION:-?}"
+
+  section "dotswap profile"
+  if [ -f "$HOME/.local/state/dotswap-profile" ]; then
+    ok "active profile: $(cat "$HOME/.local/state/dotswap-profile")"
+  else
+    warn "no profile file at ~/.local/state/dotswap-profile — 'dotswap use <profile>' never ran"
+  fi
+  if [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
+    ok "~/.config/hypr/hyprland.conf exists ($(wc -l < "$HOME/.config/hypr/hyprland.conf") lines)"
+  else
+    warn "~/.config/hypr/hyprland.conf missing"
+  fi
+
+  section "Ambxst"
+  if need ambxst; then
+    ok "ambxst binary present"
+    [ -d "$HOME/.local/share/ambxst" ] && ok "~/.local/share/ambxst present" \
+      || warn "~/.local/share/ambxst missing — run: ambxst install hyprland"
+  else
+    warn "ambxst not installed — run: curl -L get.axeni.de/ambxst | sh"
+  fi
+
+  section "Running shell/bar processes"
+  local found=0
+  for p in ambxst quickshell waybar; do
+    if pgrep -fa "$p" >/dev/null 2>&1; then
+      pgrep -fa "$p" | sed 's/^/   /'; found=1
+    fi
+  done
+  [ "$found" -eq 1 ] || warn "none of ambxst/quickshell/waybar are running"
+
+  section "systemd --user units (hypr/wayb/ambxst/cachy)"
+  systemctl --user list-units --type=service --state=running 2>/dev/null \
+    | grep -iE "wayb|hypr|cachy|ambxst" | sed 's/^/   /' \
+    || warn "none found"
+
+  echo
+  printf '%sDone.%s Compare against: session should show plain Hyprland (not a\n' "$GRN" "$R"
+  printf 'CachyOS-specific wrapper), profile should be set, ambxst/quickshell should\n'
+  printf 'be running.\n\n'
+  exit 0
+}
+[ "$MODE" = doctor ] && run_doctor
+
+# --- uninstall: removes only what dotswap put down ----------------------------
+run_uninstall() {
+  printf '%s%sdotswap uninstall%s\n\n' "$B" "$MAG" "$R"
+  echo "This removes:"
+  echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,whisper-flow,kb-toggle}"
+  echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,caelestia}"
+  echo "  - ~/.local/state/dotswap-profile"
+  echo
+  echo "It does NOT remove: installed packages, ~/.config/hypr (your live config),"
+  echo "Ambxst itself, or the SDDM theme — those are shared system state an"
+  echo "unattended script shouldn't gamble on unwinding."
+  echo
+  local ans=no
+  if [ -r /dev/tty ]; then
+    printf 'Proceed? [y/N] '
+    IFS= read -r ans </dev/tty || ans=no
+  else
+    warn "no terminal — refusing to uninstall non-interactively"
+    exit 1
+  fi
+  case "$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) ;;
+    *) echo "Aborted."; exit 0 ;;
+  esac
+  rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/whisper-flow" "$BIN/kb-toggle"
+  ok "removed dotswap tools from $BIN"
+  for p in "${PROFILES[@]}"; do
+    rm -rf "${SRC_BASE:?}/chezmoi-$p"
+  done
+  ok "removed chezmoi profile sources"
+  rm -f "$HOME/.local/state/dotswap-profile"
+  ok "removed profile state file"
+  echo
+  printf '%sDone.%s ~/.config/hypr and installed packages were left untouched.\n\n' "$GRN" "$R"
+  exit 0
+}
+[ "$MODE" = uninstall ] && run_uninstall
 
 banner
 
