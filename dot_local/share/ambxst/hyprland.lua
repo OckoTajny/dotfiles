@@ -3,7 +3,7 @@
 -- ▄▀  ██▀██ ██ ██ ▀████   ██   ██▄▄▄ 
 
 hl.on("hyprland.start", function()
-    -- hl.exec_cmd("ambxst")  -- disabled: systemd --user ambxst.service is the sole autostart mechanism (avoids double-start under uwsm)
+    hl.exec_cmd("ambxst")
 end)
 
 
@@ -17,8 +17,8 @@ hl.config({
         gaps_out = 4,
         border_size = 2,
         col = {
-            active_border = "rgb(ddb9f7)",
-            inactive_border = "rgb(252126)",
+            active_border = "rgb(ffb59e)",
+            inactive_border = "rgb(2b201e)",
         },
         layout = "dwindle",
     },
