@@ -110,10 +110,10 @@ alias wipe='cliphist wipe && notify-send "Clipboard emptied"'
 alias update='sudo pacman -Syu'
 alias update-all='yay -Syu'
 alias hypr-update='hyprpm update'
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+[ -x /home/linuxbrew/.linuxbrew/bin/brew ] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # OpenClaw Completion
-[ -f "/home/ocko/.openclaw/completions/openclaw.zsh" ] && source "/home/ocko/.openclaw/completions/openclaw.zsh"
+[ -f "$HOME/.openclaw/completions/openclaw.zsh" ] && source "$HOME/.openclaw/completions/openclaw.zsh"
 export PATH="$HOME/.local/bin:$PATH"
 
 # npm global bin (agent-browser CLI)
