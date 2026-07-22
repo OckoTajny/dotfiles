@@ -291,7 +291,7 @@ run_doctor() {
 run_uninstall() {
   printf '%s%sdotswap uninstall%s\n\n' "$B" "$MAG" "$R"
   echo "This removes:"
-  echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,whisper-flow,kb-toggle}"
+  echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,whisper-flow,kb-toggle,ambxst}"
   echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,caelestia}"
   echo "  - ~/.local/state/dotswap-profile"
   echo
@@ -311,7 +311,7 @@ run_uninstall() {
     y|yes) ;;
     *) echo "Aborted."; exit 0 ;;
   esac
-  rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/whisper-flow" "$BIN/kb-toggle"
+  rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/whisper-flow" "$BIN/kb-toggle" "$BIN/ambxst"
   ok "removed dotswap tools from $BIN"
   for p in "${PROFILES[@]}"; do
     rm -rf "${SRC_BASE:?}/chezmoi-$p"
@@ -449,6 +449,17 @@ if need ambxst; then
   sed -i 's/^exec-once = ambxst$/# exec-once = ambxst  # disabled: ambxst.service (systemd --user) is the sole autostart mechanism/' \
     "$HOME/.local/share/ambxst/hyprland.conf" 2>/dev/null || true
 
+  # The sed above only helps until Ambxst regenerates hyprland.conf again —
+  # which it does on EVERY shell start, not just `ambxst install` (real-world
+  # finding: exec-once kept coming back after each login, and together with
+  # ambxst.service that meant two instances → 80px instead of 40px top
+  # reserve, visible as a gap between bar and windows). Permanent fix: a
+  # guard wrapper installed as ~/.local/bin/ambxst (shipped in bin/, deployed
+  # with the other tools below; ~/.local/bin precedes /usr/local/bin in
+  # Hyprland's PATH). Bare `ambxst` calls route to `systemctl --user start
+  # ambxst.service` (idempotent — whichever launcher fires first wins),
+  # subcommands and $AMBXST_NO_GUARD pass through to the real binary.
+
   # Real-world finding: on a uwsm-managed session, hyprland.conf's
   # `exec-once = ambxst` (sourced from ~/.local/share/ambxst/hyprland.conf)
   # silently never fired after reboot — no ambxst/quickshell process, and
@@ -456,7 +467,11 @@ if need ambxst; then
   # so give Ambxst a proper systemd --user unit tied to graphical-session.target
   # instead: same mechanism uwsm itself uses, and failures are actually
   # visible via `journalctl --user -u ambxst`.
-  AMBXST_BIN=$(command -v ambxst)
+  # Prefer the real binary over `command -v`: once the guard wrapper sits in
+  # ~/.local/bin (earlier in PATH), `command -v ambxst` would resolve to the
+  # wrapper and ExecStart would recurse through systemctl into itself.
+  AMBXST_BIN=/usr/local/bin/ambxst
+  [ -x "$AMBXST_BIN" ] || AMBXST_BIN=$(command -v ambxst)
   mkdir -p "$HOME/.config/systemd/user"
   cat > "$HOME/.config/systemd/user/ambxst.service" <<EOF
 [Unit]
@@ -576,7 +591,7 @@ done
 # 4. install the dotswap tools + whisper-flow ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
-TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle)
+TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle ambxst)
 self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")
 if [ -n "$self_dir" ] && [ -d "$self_dir/bin" ]; then
   install -Dm755 "$self_dir/bin/"* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
