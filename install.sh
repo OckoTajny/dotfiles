@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# dotswap installer — clone the rice profiles + tools onto a fresh machine.
+# dotswap installer – clone the rice profiles + tools onto a fresh machine.
 # Usage: curl -fsSL https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh | bash
 #
 # Resilient by design: a failing package or step is reported and skipped, the
 # run keeps going, and a summary of what failed is printed at the end.
-set -uo pipefail   # NOTE: no `-e` — we never want one error to abort the whole install.
+set -uo pipefail   # NOTE: no `-e` – we never want one error to abort the whole install.
 
 REPO="https://github.com/OckoTajny/dotfiles.git"
 SRC_BASE="$HOME/.local/share"
@@ -23,10 +23,10 @@ DEFAULT_PROFILE=ambxst
 has_tty() { { : </dev/tty; } 2>/dev/null; }
 
 # MODE: install (default) writes configs; update only pulls in what's new
-# (updated packages, new tools) and NEVER re-applies configs — so the user's
+# (updated packages, new tools) and NEVER re-applies configs – so the user's
 # ~/.config (keybinds, tweaks) is left untouched. doctor diagnoses a broken
 # setup (session/process/config checks) without changing anything. uninstall
-# removes what dotswap itself put down (tools, profile sources, state) —
+# removes what dotswap itself put down (tools, profile sources, state) –
 # it does NOT touch installed packages, hyprland.conf, or Ambxst, since
 # unwinding those safely on an arbitrary machine isn't something an
 # unattended script should gamble on.
@@ -50,7 +50,7 @@ done
 # No mode given on the command line: ask, rather than silently assuming a
 # fresh install (this is also how a re-run picks up "did it actually work?").
 # Uninstall is in the menu too, but run_uninstall() below still asks its
-# own separate y/N before touching anything — picking "4" isn't enough
+# own separate y/N before touching anything – picking "4" isn't enough
 # by itself to delete anything.
 if [ "$MODE_EXPLICIT" -eq 0 ] && has_tty; then
   printf 'What do you want to do?\n'
@@ -74,17 +74,17 @@ CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   # keybind targets: whisper-flow dictation, OCR, media, session menu, screenshots
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
   tesseract tesseract-data-eng tesseract-data-ces bc
-  # zsh (default shell — the tracked .zshrc uses oh-my-zsh)
+  # zsh (default shell – the tracked .zshrc uses oh-my-zsh)
   zsh
   # neovim: the tracked ~/.config/nvim is LazyVim; it self-bootstraps on first
   # launch. node/npm let Mason install the LSP servers (pyright, ts, json, …).
   neovim nodejs npm
-  # checkupdates — used by hypr custom update-check.sh startup script
+  # checkupdates – used by hypr custom update-check.sh startup script
   pacman-contrib)
 # Required: the caelestia shell stack (the rices need it).
 AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
 # Optional desktop apps the keybinds launch. The user picks which to install
-# (all / a subset / none). "pkg|label" — label shown in the menu.
+# (all / a subset / none). "pkg|label" – label shown in the menu.
 OPTIONAL_APPS=(
   "kitty|terminal"
   "nautilus|file manager"
@@ -109,7 +109,7 @@ fi
 
 # Centers $2 within a field of width $1, both sides padded so the box
 # border always lines up regardless of text length (hand-counted spaces
-# drifted out of sync before — this can't).
+# drifted out of sync before – this can't).
 center() {
   local w=$1 s=$2 pad=$(( w - ${#2} )) l r
   l=$(( pad / 2 )); r=$(( pad - l ))
@@ -166,7 +166,7 @@ spin() {
 
 # --- doctor: read-only diagnosis of a broken rice, no changes made -----------
 run_doctor() {
-  printf '%s%sdotswap doctor%s — read-only, changes nothing\n\n' "$B" "$MAG" "$R"
+  printf '%s%sdotswap doctor%s – read-only, changes nothing\n\n' "$B" "$MAG" "$R"
 
   section() { printf '\n%s%s%s\n' "$B" "$1" "$R"; }
 
@@ -184,25 +184,25 @@ run_doctor() {
   # Hyprland 0.55+ on CachyOS picks a config provider at startup: if
   # ~/.config/hypr/hyprland.lua exists (CachyOS's cachyos-hypr-noctalia
   # skeleton ships one), it's used INSTEAD of hyprland.conf and our whole
-  # .conf tree (this repo's target) is silently ignored — no error, no
+  # .conf tree (this repo's target) is silently ignored – no error, no
   # keybind. Real-world finding: install looked 100% successful, rice just
   # never worked. `hyprctl keyword` also doesn't work under the lua
-  # provider ("keyword can't work with non-legacy parsers") — only
+  # provider ("keyword can't work with non-legacy parsers") – only
   # `hyprctl eval` does runtime changes there.
   provider=$(hyprctl systeminfo 2>/dev/null | grep -i configProvider | sed 's/.*: *//' | tr -d '[:space:]')
   if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
-    err "~/.config/hypr/hyprland.lua exists — dotswap's .conf tree may be ignored"
+    err "~/.config/hypr/hyprland.lua exists – dotswap's .conf tree may be ignored"
     err "  fix: mv ~/.config/hypr/hyprland.lua{,.disabled} then re-login (NOT hyprctl reload)"
   fi
   # Confirmed good value (normal .conf-based session): "hyprlang". The only
   # confirmed-bad value from the field is "lua" (CachyOS's alternate
   # provider). Anything else unrecognized is printed as-is, not asserted
-  # broken — better an unlabeled value than a false "BROKEN" here.
+  # broken – better an unlabeled value than a false "BROKEN" here.
   case "$provider" in
     ""|*hyprlang*) ok "configProvider: ${provider:-hyprlang}" ;;
-    *lua*) err "configProvider: $provider — dotswap's hyprland.conf/custom/keybinds.conf are NOT active"
+    *lua*) err "configProvider: $provider – dotswap's hyprland.conf/custom/keybinds.conf are NOT active"
        err "  fix: mv ~/.config/hypr/hyprland.lua{,.disabled} then re-login (NOT hyprctl reload)" ;;
-    *) warn "configProvider: $provider (unrecognized — verify manually if binds seem missing)" ;;
+    *) warn "configProvider: $provider (unrecognized – verify manually if binds seem missing)" ;;
   esac
 
   section "Monitor config applied"
@@ -222,20 +222,20 @@ run_doctor() {
         warn "monitor '$mname' (monitors.conf) not found in hyprctl monitors -j"; mon_mismatch=1
       elif [ "$got" != "${want_x}x${want_y}" ]; then
         warn "monitor '$mname' position mismatch: monitors.conf wants ${want_x}x${want_y}, hyprctl reports $got"
-        warn "  (config not applied — often the same lua-provider issue above)"
+        warn "  (config not applied – often the same lua-provider issue above)"
         mon_mismatch=1
       fi
     done < "$MON_CONF"
     [ "$mon_mismatch" -eq 0 ] && ok "monitors.conf positions match hyprctl monitors -j"
   else
-    warn "no ~/.config/hypr/monitors.conf or jq missing — skipping monitor-position check"
+    warn "no ~/.config/hypr/monitors.conf or jq missing – skipping monitor-position check"
   fi
 
   section "dotswap profile"
   if [ -f "$HOME/.local/state/dotswap-profile" ]; then
     ok "active profile: $(cat "$HOME/.local/state/dotswap-profile")"
   else
-    warn "no profile file at ~/.local/state/dotswap-profile — 'dotswap use <profile>' never ran"
+    warn "no profile file at ~/.local/state/dotswap-profile – 'dotswap use <profile>' never ran"
   fi
   if [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
     ok "~/.config/hypr/hyprland.conf exists ($(wc -l < "$HOME/.config/hypr/hyprland.conf") lines)"
@@ -247,16 +247,16 @@ run_doctor() {
   if need ambxst; then
     ok "ambxst binary present"
     [ -d "$HOME/.local/share/ambxst" ] && ok "~/.local/share/ambxst present" \
-      || warn "~/.local/share/ambxst missing — run: ambxst install hyprland"
+      || warn "~/.local/share/ambxst missing – run: ambxst install hyprland"
   else
-    warn "ambxst not installed — run: curl -L get.axeni.de/ambxst | sh"
+    warn "ambxst not installed – run: curl -L get.axeni.de/ambxst | sh"
   fi
   if systemctl --user is-enabled ambxst.service >/dev/null 2>&1; then
     ok "ambxst.service enabled ($(systemctl --user is-active ambxst.service 2>/dev/null))"
     systemctl --user is-active --quiet ambxst.service \
       || journalctl --user -u ambxst.service -b --no-pager 2>/dev/null | tail -15 | sed 's/^/   /'
   else
-    warn "ambxst.service not enabled — run: systemctl --user enable --now ambxst.service"
+    warn "ambxst.service not enabled – run: systemctl --user enable --now ambxst.service"
   fi
 
   section "Running shell/bar processes"
@@ -269,7 +269,7 @@ run_doctor() {
   [ "$found" -eq 1 ] || warn "none of ambxst/quickshell/waybar are running"
   qs_count=$(pgrep -cf "qs -p .*shell\.qml" 2>/dev/null || echo 0)
   if [ "$qs_count" -gt 1 ]; then
-    err "$qs_count Ambxst shell instances running (qs -p .../shell.qml) — should be exactly 1"
+    err "$qs_count Ambxst shell instances running (qs -p .../shell.qml) – should be exactly 1"
     err "  usually: tracked hyprland.conf/hyprland.lua exec-once + ambxst.service both starting it"
     err "  fix: pkill -f 'shell.qml' then let systemd --user restart ambxst.service alone"
   fi
@@ -296,7 +296,7 @@ run_uninstall() {
   echo "  - ~/.local/state/dotswap-profile"
   echo
   echo "It does NOT remove: installed packages, ~/.config/hypr (your live config),"
-  echo "Ambxst itself, or the SDDM theme — those are shared system state an"
+  echo "Ambxst itself, or the SDDM theme – those are shared system state an"
   echo "unattended script shouldn't gamble on unwinding."
   echo
   local ans=no
@@ -304,7 +304,7 @@ run_uninstall() {
     printf 'Proceed? [y/N] '
     IFS= read -r ans </dev/tty || ans=no
   else
-    warn "no terminal — refusing to uninstall non-interactively"
+    warn "no terminal – refusing to uninstall non-interactively"
     exit 1
   fi
   case "$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')" in
@@ -330,18 +330,18 @@ banner
 # CachyOS 0.55+ Hyprland picks its config provider at startup: if
 # ~/.config/hypr/hyprland.lua exists (the cachyos-hypr-noctalia skeleton
 # ships one), it's used INSTEAD of hyprland.conf and this repo's whole .conf
-# tree loads with zero effect and zero error — install looks 100% successful,
+# tree loads with zero effect and zero error – install looks 100% successful,
 # but no keybind from it is ever active. Disable it so the next Hyprland
 # start picks up hyprland.conf instead.
 if [ "$MODE" != update ] && [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
   mv "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/hypr/hyprland.lua.disabled"
-  warn "found ~/.config/hypr/hyprland.lua (CachyOS's config) — disabled it (renamed .disabled)"
+  warn "found ~/.config/hypr/hyprland.lua (CachyOS's config) – disabled it (renamed .disabled)"
   warn "the config provider is picked at Hyprland startup, so this needs a re-login/reboot to take effect"
-  warn "do NOT run 'hyprctl reload' before then — reload in a running lua session wipes all binds"
+  warn "do NOT run 'hyprctl reload' before then – reload in a running lua session wipes all binds"
 fi
 
 # Ask for sudo up front. Several steps below run sudo inside spin(), which
-# backgrounds the command with stdout/stderr redirected to a log file — but
+# backgrounds the command with stdout/stderr redirected to a log file – but
 # sudo's password prompt bypasses that redirection on purpose (it writes
 # straight to /dev/tty so it's never silently swallowed), so it would
 # otherwise print mid-spinner and get garbled together with the \r redraws.
@@ -350,7 +350,7 @@ fi
 # build further into the script.
 if has_tty; then
   if ! sudo -v < /dev/tty; then
-    err "sudo authentication failed — wrong password 3x, or a keyboard-layout"
+    err "sudo authentication failed – wrong password 3x, or a keyboard-layout"
     err "mismatch (cz/us) while typing it. Fix that first, then re-run:"
     err "  curl -fsSL jachym.djt-group.com/install | bash"
     exit 1
@@ -364,21 +364,21 @@ fi
 say "Checking base tools"
 # clear a stale pacman lock (only if no pacman is actually running)
 if [ -f /var/lib/pacman/db.lck ] && ! pgrep -x pacman >/dev/null 2>&1; then
-  warn "stale pacman lock — removing /var/lib/pacman/db.lck"
+  warn "stale pacman lock – removing /var/lib/pacman/db.lck"
   sudo rm -f /var/lib/pacman/db.lck || true
 fi
 # refresh package databases + full system upgrade upfront (fixes 'unrecognized
 # archive format' / unsynced db, and avoids partial-upgrade breakage from
 # installing new packages against a stale system later in the script)
 if ! spin "syncing & upgrading system packages…" sudo pacman -Syyu --noconfirm; then
-  warn "couldn't sync/upgrade (mirror down?) — run 'sudo pacman -Syyu' and retry"
+  warn "couldn't sync/upgrade (mirror down?) – run 'sudo pacman -Syyu' and retry"
 fi
 need git     || sudo pacman -S --needed --noconfirm git     || fail "install git"
 need chezmoi || sudo pacman -S --needed --noconfirm chezmoi || fail "install chezmoi"
 if need yay; then
   ok "yay present"
 elif need git; then
-  warn "yay missing — bootstrapping AUR helper"
+  warn "yay missing – bootstrapping AUR helper"
   sudo pacman -S --needed --noconfirm base-devel git || fail "base-devel for yay"
   tmp=$(mktemp -d)
   if git clone https://aur.archlinux.org/yay.git "$tmp/yay" && ( cd "$tmp/yay" && makepkg -si --noconfirm ); then
@@ -387,7 +387,7 @@ elif need git; then
     fail "bootstrap yay"
   fi
 fi
-need git && need chezmoi && ok "base tools ready" || warn "base tools incomplete — see summary"
+need git && need chezmoi && ok "base tools ready" || warn "base tools incomplete – see summary"
 
 # 2. dependencies (per-package so one bad pkg doesn't sink the rest) -----------
 say "Installing packages & apps"
@@ -396,7 +396,7 @@ say "Installing packages & apps"
 if [ "$MODE" = update ]; then
   if need yay; then
     spin "upgrading system & AUR packages…" yay -Syu --noconfirm && ok "system & AUR packages upgraded" \
-      || warn "package upgrade hit issues — see summary / re-run"
+      || warn "package upgrade hit issues – see summary / re-run"
   else
     spin "upgrading system packages…" sudo pacman -Syu --noconfirm && ok "system packages upgraded" \
       || warn "package upgrade hit issues"
@@ -417,39 +417,39 @@ if need yay; then
       || { printf '   %s⚠%s  %s (AUR, log: %s)\n' "$YEL" "$R" "$p" "$SPIN_LOG"; tail -n5 "$SPIN_LOG" | sed 's/^/       /'; FAILS+=("aur: $p ($SPIN_LOG)"); }
   done
 else
-  warn "no yay — skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
+  warn "no yay – skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
 fi
 
-# Ambxst shell (ambxst rice's bar/dock) — not a package, has its own installer.
+# Ambxst shell (ambxst rice's bar/dock) – not a package, has its own installer.
 # The tracked hyprland.conf already has `source = ~/.local/share/ambxst/hyprland.conf`,
 # so without this, Hyprland loads fine but no bar/dock ever appears.
 if need ambxst; then
   ok "Ambxst present"
 elif has_tty; then
   # < /dev/tty: this script's own stdin is the curl|bash pipe (already
-  # exhausted) — without a real tty attached, Ambxst's installer can't
+  # exhausted) – without a real tty attached, Ambxst's installer can't
   # read anything it needs to and silently no-ops.
   spin "installing Ambxst shell…" bash -c "curl -L get.axeni.de/ambxst | sh" < /dev/tty \
     && ok "Ambxst installed" \
-    || { warn "Ambxst install failed (log: $SPIN_LOG) — install manually: curl -L get.axeni.de/ambxst | sh"; FAILS+=("ambxst: install ($SPIN_LOG)"); }
+    || { warn "Ambxst install failed (log: $SPIN_LOG) – install manually: curl -L get.axeni.de/ambxst | sh"; FAILS+=("ambxst: install ($SPIN_LOG)"); }
 else
-  warn "no terminal — install Ambxst manually: curl -L get.axeni.de/ambxst | sh"
+  warn "no terminal – install Ambxst manually: curl -L get.axeni.de/ambxst | sh"
 fi
 if need ambxst; then
   # Wires the hyprland.conf import (idempotent, matches what's already
-  # tracked) — kept for anyone on a plain (non-uwsm) Hyprland session.
+  # tracked) – kept for anyone on a plain (non-uwsm) Hyprland session.
   ambxst install hyprland >/dev/null 2>&1 || true
 
   # `ambxst install hyprland` regenerates ~/.local/share/ambxst/hyprland.conf
   # from scratch and reintroduces `exec-once = ambxst` (the tracked copy
-  # ships it commented out on purpose) — disable it again so the systemd
+  # ships it commented out on purpose) – disable it again so the systemd
   # unit below stays the ONLY autostart path. Without this, two ambxst/
   # quickshell instances end up running at once (real-world finding: ~3.3GB
   # RAM, duplicate loginlock/sleep_monitor scripts).
   sed -i 's/^exec-once = ambxst$/# exec-once = ambxst  # disabled: ambxst.service (systemd --user) is the sole autostart mechanism/' \
     "$HOME/.local/share/ambxst/hyprland.conf" 2>/dev/null || true
 
-  # The sed above only helps until Ambxst regenerates hyprland.conf again —
+  # The sed above only helps until Ambxst regenerates hyprland.conf again –
   # which it does on EVERY shell start, not just `ambxst install` (real-world
   # finding: exec-once kept coming back after each login, and together with
   # ambxst.service that meant two instances → 80px instead of 40px top
@@ -457,12 +457,12 @@ if need ambxst; then
   # guard wrapper installed as ~/.local/bin/ambxst (shipped in bin/, deployed
   # with the other tools below; ~/.local/bin precedes /usr/local/bin in
   # Hyprland's PATH). Bare `ambxst` calls route to `systemctl --user start
-  # ambxst.service` (idempotent — whichever launcher fires first wins),
+  # ambxst.service` (idempotent – whichever launcher fires first wins),
   # subcommands and $AMBXST_NO_GUARD pass through to the real binary.
 
   # Real-world finding: on a uwsm-managed session, hyprland.conf's
   # `exec-once = ambxst` (sourced from ~/.local/share/ambxst/hyprland.conf)
-  # silently never fired after reboot — no ambxst/quickshell process, and
+  # silently never fired after reboot – no ambxst/quickshell process, and
   # nothing in hyprland.log to explain why. uwsm sessions are systemd-native,
   # so give Ambxst a proper systemd --user unit tied to graphical-session.target
   # instead: same mechanism uwsm itself uses, and failures are actually
@@ -490,11 +490,11 @@ EOF
   systemctl --user daemon-reload 2>/dev/null
   systemctl --user enable --now ambxst.service >/dev/null 2>&1 \
     && ok "Ambxst started via systemd --user (autostarts on future logins)" \
-    || warn "couldn't enable ambxst.service — run: systemctl --user enable --now ambxst.service"
+    || warn "couldn't enable ambxst.service – run: systemctl --user enable --now ambxst.service"
 fi
 
-# optional desktop apps the keybinds launch — the user chooses which to install
-printf '   %sApps (keybind targets) — optional%s\n' "$DIM" "$R"
+# optional desktop apps the keybinds launch – the user chooses which to install
+printf '   %sApps (keybind targets) – optional%s\n' "$DIM" "$R"
 n=${#OPTIONAL_APPS[@]}
 i=1
 for entry in "${OPTIONAL_APPS[@]}"; do
@@ -508,7 +508,7 @@ if has_tty; then
     "$B" "$GRN" "$R" "$B" "$RED" "$R" "$B" "$R"
   IFS= read -r ans </dev/tty || ans=all
 else
-  warn "no terminal — installing all optional apps by default"
+  warn "no terminal – installing all optional apps by default"
 fi
 
 chosen=()
@@ -532,7 +532,7 @@ for p in "${chosen[@]}"; do
     || { printf '   %s⚠%s  %s (log: %s)\n' "$YEL" "$R" "$p" "$SPIN_LOG"; tail -n5 "$SPIN_LOG" | sed 's/^/       /'; FAILS+=("app: $p ($SPIN_LOG)"); }
 done
 
-# brrtfetch — the purple-glitch fastfetch bound to Super+Return (custom Go build)
+# brrtfetch – the purple-glitch fastfetch bound to Super+Return (custom Go build)
 if need brrtfetch; then
   ok "brrtfetch present"
 else
@@ -546,7 +546,7 @@ else
   fi
 fi
 
-# zsh — the tracked .zshrc uses oh-my-zsh + zsh-autosuggestions + zsh-syntax-highlighting
+# zsh – the tracked .zshrc uses oh-my-zsh + zsh-autosuggestions + zsh-syntax-highlighting
 printf '   %szsh (oh-my-zsh + plugins)…%s\n' "$DIM" "$R"
 ZSH_DIR="$HOME/.oh-my-zsh"
 if [ -d "$ZSH_DIR" ]; then
@@ -615,10 +615,10 @@ if need uv; then
     warn "whisper-ctranslate2 (run 'uv tool install whisper-ctranslate2')"
   fi
 else
-  warn "uv missing — skipping whisper-ctranslate2 (dictation engine)"
+  warn "uv missing – skipping whisper-ctranslate2 (dictation engine)"
 fi
 
-# 5. login screen theme (only if SDDM is the active display manager — no
+# 5. login screen theme (only if SDDM is the active display manager – no
 #    bootloader/initramfs changes here, just an AUR package + a drop-in
 #    config file, so it's safe to always attempt and easy to undo) ------------
 if systemctl is-active --quiet sddm.service 2>/dev/null; then
@@ -626,7 +626,7 @@ if systemctl is-active --quiet sddm.service 2>/dev/null; then
   if need yay; then
     spin "installing sddm-astronaut-theme…" yay -S --needed --noconfirm sddm-astronaut-theme \
       && ok "theme installed" \
-      || warn "sddm-astronaut-theme (AUR, log: $SPIN_LOG) — pick a theme manually"
+      || warn "sddm-astronaut-theme (AUR, log: $SPIN_LOG) – pick a theme manually"
   fi
   if [ -d /usr/share/sddm/themes/sddm-astronaut-theme ]; then
     sudo mkdir -p /etc/sddm.conf.d
@@ -643,7 +643,7 @@ if systemctl is-active --quiet sddm.service 2>/dev/null; then
   # CachyOS ships gnome/plasma/niri session files alongside Hyprland; on a
   # fresh account SDDM has no remembered choice yet and silently falls back
   # to whichever session it picks by default (observed: alphabetically-first
-  # "gnome") — indistinguishable from a broken rice unless you notice the
+  # "gnome") – indistinguishable from a broken rice unless you notice the
   # session picker on the login screen. Don't rely on that being noticed.
   ACCOUNTS_FILE="/var/lib/AccountsService/users/$USER"
   if [ -f "$ACCOUNTS_FILE" ]; then
@@ -670,10 +670,10 @@ case ":$PATH:" in
   *":$BIN:"*) ;;
   *) grep -q "$BIN" "$HOME/.profile" 2>/dev/null || \
        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile"
-     warn "added $BIN to ~/.profile — re-login or: source ~/.profile" ;;
+     warn "added $BIN to ~/.profile – re-login or: source ~/.profile" ;;
 esac
 if [ "$MODE" = update ]; then
-  ok "update mode — your ${B}~/.config${R} was left untouched (keybinds & tweaks kept)"
+  ok "update mode – your ${B}~/.config${R} was left untouched (keybinds & tweaks kept)"
 elif [ -x "$BIN/dotswap" ] && [ -d "$SRC_BASE/chezmoi-$DEFAULT_PROFILE" ]; then
   "$BIN/dotswap" use "$DEFAULT_PROFILE" && ok "applied default profile: ${B}${DEFAULT_PROFILE}${R}" \
     || fail "apply profile $DEFAULT_PROFILE"
@@ -683,7 +683,7 @@ fi
 
 # --- summary ------------------------------------------------------------------
 echo
-printf '%s%sreboot or re-login recommended%s — the default-shell change above only takes\n' "$YEL" "$B" "$R"
+printf '%s%sreboot or re-login recommended%s – the default-shell change above only takes\n' "$YEL" "$B" "$R"
 printf '  effect after that; %shyprctl reload%s (printed above) only refreshes the\n' "$B" "$R"
 printf '  compositor for rice switches, not this first-time setup.\n\n'
 if [ "${#FAILS[@]}" -eq 0 ]; then
@@ -692,7 +692,7 @@ if [ "${#FAILS[@]}" -eq 0 ]; then
 else
   printf '%s%s⚠ finished with %d issue(s):%s\n' "$YEL" "$B" "${#FAILS[@]}" "$R"
   for f in "${FAILS[@]}"; do printf '   %s•%s %s\n' "$YEL" "$R" "$f"; done
-  printf '   %sFix the above (often: bad mirror → %ssudo pacman -Syyu%s%s) and re-run this script — it is safe to repeat.%s\n\n' \
+  printf '   %sFix the above (often: bad mirror → %ssudo pacman -Syyu%s%s) and re-run this script – it is safe to repeat.%s\n\n' \
     "$DIM" "$B" "$R" "$DIM" "$R"
 fi
 

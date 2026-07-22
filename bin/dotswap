@@ -16,7 +16,7 @@ TRACKED_LOCAL_SHARE_DIRS=(ambxst)
 TRACKED_HOME_FILES=(.zshrc)
 
 # Private/runtime data that must NEVER be committed (clipboard history holds
-# copied secrets — tokens, passwords). Pruned from each snapshot. Paths are
+# copied secrets – tokens, passwords). Pruned from each snapshot. Paths are
 # relative to a copied tracked dir under dot_local/share or dot_config.
 SENSITIVE_GLOBS=(clipboard.db clipboard-data keys.db chats)
 

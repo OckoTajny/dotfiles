@@ -22,7 +22,7 @@ if [[ -f "$PIDF" ]] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
   notify "transcribing…"
   rm -f "$TXT"
   whisper-ctranslate2 "$WAV" --model "$MODEL" --output_dir "$DIR" \
-    --output_format txt --task transcribe >"$DIR/err.log" 2>&1 || { notify "transcribe failed — see $DIR/err.log"; exit 1; }
+    --output_format txt --task transcribe >"$DIR/err.log" 2>&1 || { notify "transcribe failed – see $DIR/err.log"; exit 1; }
   text="$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$TXT" | paste -sd' ')"
   if [[ -n "$text" ]]; then
     wtype "$text"

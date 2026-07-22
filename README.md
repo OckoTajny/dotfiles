@@ -1,4 +1,4 @@
-# dotswap — one Hyprland machine, four rices
+# dotswap – one Hyprland machine, four rices
 
 `dotswap` swaps whole desktop "profiles" (rices) in place using **chezmoi** with a
 separate source tree per profile. One keypress cycles the entire shell, bar,
@@ -28,7 +28,7 @@ Caelestia shell stack, clones all four profile branches into
 ### Updating
 
 The same script doubles as an updater. Run it with `--update` to pull in only
-what's **new** — updated packages and newly added tools — while leaving your
+what's **new** – updated packages and newly added tools – while leaving your
 `~/.config` (keybinds, tweaks) completely untouched:
 
 ```sh
@@ -40,9 +40,9 @@ configs are never re-applied.
 
 > The three desktop shells own their full dependency trees. For a complete
 > install of any one rice, also run its upstream installer:
-> - **Ambxst** — https://github.com/Axenide/Ambxst
-> - **illogical-impulse** — https://github.com/end-4/dots-hyprland
-> - **Caelestia** — https://github.com/caelestia-dots/caelestia (`caelestia install`)
+> - **Ambxst** – https://github.com/Axenide/Ambxst
+> - **illogical-impulse** – https://github.com/end-4/dots-hyprland
+> - **Caelestia** – https://github.com/caelestia-dots/caelestia (`caelestia install`)
 
 ## Usage
 
@@ -70,11 +70,11 @@ Cycle order: `ambxst → illogical → win11 → caelestia → …`
 
 ## How it works
 
-- `bin/dotswap` — snapshot/apply per-profile chezmoi sources. Tracked paths are
+- `bin/dotswap` – snapshot/apply per-profile chezmoi sources. Tracked paths are
   the `TRACKED_*` arrays at the top of the script.
-- `bin/dotswap-cycle next|prev` — walks the `PROFILES` array, calls `dotswap use`
+- `bin/dotswap-cycle next|prev` – walks the `PROFILES` array, calls `dotswap use`
   then `dotswap-postapply`.
-- `bin/dotswap-postapply <profile>` — stops the old shell, starts the new one,
+- `bin/dotswap-postapply <profile>` – stops the old shell, starts the new one,
   reloads Hyprland. Shell starts are `pgrep`-guarded against duplicates.
 
 Profile name is stored in `~/.local/state/dotswap-profile`.
