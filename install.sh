@@ -580,7 +580,16 @@ for p in "${PROFILES[@]}"; do
   dst="$SRC_BASE/chezmoi-$p"
   if [ -d "$dst/.git" ]; then
     printf '   %s↻%s %-10s updating\n' "$BLU" "$R" "$p"
-    git -C "$dst" pull --ff-only >/dev/null 2>&1 || warn "$p: pull failed (local changes?)"
+    if [ "$MODE" = install ]; then
+      # install mode rewrites everything: force source to match remote branch,
+      # discarding any local edits (ff-only pull fails when the tree is dirty).
+      git -C "$dst" fetch --quiet origin "${BRANCH[$p]}" >/dev/null 2>&1 \
+        && git -C "$dst" reset --hard "origin/${BRANCH[$p]}" >/dev/null 2>&1 \
+        && git -C "$dst" clean -fd >/dev/null 2>&1 \
+        || warn "$p: reset failed (network? bad branch?)"
+    else
+      git -C "$dst" pull --ff-only >/dev/null 2>&1 || warn "$p: pull failed (local changes?)"
+    fi
   elif git clone --quiet --branch "${BRANCH[$p]}" "$REPO" "$dst"; then
     printf '   %s⬇%s %-10s ← %s%s%s\n' "$GRN" "$R" "$p" "$DIM" "${BRANCH[$p]}" "$R"
   else
