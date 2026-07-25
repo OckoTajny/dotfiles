@@ -1,5 +1,5 @@
 [startup]
-exec-once = "ambxst"
+# exec-once = "ambxst"  # disabled: systemd --user ambxst.service is the sole autostart. axctl re-launching ambxst here spawned a duplicate shell.
 [appearance]
 [appearance.gaps]
 inner = 2
