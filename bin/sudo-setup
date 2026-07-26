@@ -1,69 +1,67 @@
 #!/usr/bin/env bash
 # sudo-setup — configure sudo password behaviour from a fuzzel menu.
 #
-# Writes validated drop-ins into /etc/sudoers.d/ as root via pkexec (graphical
-# polkit prompt), so it works when launched from a Hyprland keybind. Every file
-# is syntax-checked with `visudo -cf` BEFORE install — a bad sudoers file can
-# lock you out of sudo, so an invalid one is refused, never written.
+# Runs privileged actions in a terminal with `sudo` (you type your password in
+# the terminal), so it needs NO polkit agent — unlike pkexec, which silently
+# fails when no authentication agent is running in the session.
 #
-#   pwfeedback  — show *** while typing the sudo password (helps when the cz/us
-#                 layout makes a blind password entry fail)
-#   NOPASSWD    — passwordless sudo for the current user
+# sudoers drop-ins are syntax-checked with `visudo -cf` BEFORE install; a bad
+# sudoers file can lock you out of sudo, so an invalid one is refused.
 #
-# Deps: fuzzel (or PICKER=rofi), pkexec, visudo, notify-send.
+# Deps: fuzzel (or PICKER=rofi), kitty (or set TERMINAL), sudo, visudo, passwd.
 set -uo pipefail
 
 PICKER=${PICKER:-fuzzel}
+TERM_CMD=${TERMINAL:-kitty}
 USER_NAME=$(id -un)
 FB=/etc/sudoers.d/00-pwfeedback
 NP="/etc/sudoers.d/10-nopasswd-${USER_NAME}"
 
 note() { notify-send -i security-high "sudo-setup" "$1" 2>/dev/null || printf '%s\n' "$1"; }
 
-menu='Show *** while typing password (pwfeedback)
-Passwordless sudo for me (NOPASSWD)
-Require password again (remove passwordless)
-Disable *** feedback'
+menu='Show *** while typing sudo password (pwfeedback)
+Disable *** feedback
+Remove sudo password — passwordless (NOPASSWD)
+Require sudo password again
+Change my login / sudo password (passwd)'
 
 case "$PICKER" in
-  fuzzel) sel=$(printf '%s' "$menu" | fuzzel --dmenu --prompt "sudo> ") ;;
+  fuzzel) sel=$(printf '%s' "$menu" | fuzzel --dmenu --prompt "sudo> " --width 48) ;;
   rofi)   sel=$(printf '%s' "$menu" | rofi -dmenu -p "sudo") ;;
   *)      sel=$(printf '%s' "$menu" | "$PICKER") ;;
 esac
 [ -n "${sel:-}" ] || exit 0          # cancelled
 
-# run a command as root: pkexec (graphical) if a polkit agent is around,
-# else fall back to a terminal sudo prompt.
-run_priv() {
-  if command -v pkexec >/dev/null 2>&1 && pkexec "$@"; then return 0; fi
-  command -v kitty >/dev/null 2>&1 && exec kitty --title "sudo-setup" -e sudo "$@"
-  sudo "$@"
+# open a terminal, run a bash snippet, keep the window until a keypress so the
+# password prompt and any error are readable.
+run_term() {                          # $1=title  $2=bash snippet
+  "$TERM_CMD" --title "$1" -e bash -c "$2"$'\necho; read -rp "Press Enter to close… " _'
 }
 
-install_dropin() {                    # $1=dest  $2=content
-  local dest=$1 content=$2 tmp
+install_dropin() {                    # $1=dest  $2=content  $3=human label
+  local dest=$1 content=$2 label=$3 tmp
   tmp=$(mktemp)
   printf '%s\n' "$content" > "$tmp"
   if ! visudo -cf "$tmp" >/dev/null 2>&1; then
     note "Refused: invalid sudoers syntax"; rm -f "$tmp"; exit 1
   fi
-  if run_priv install -m 0440 -o root -g root "$tmp" "$dest"; then
-    note "Applied: $(basename "$dest")"
-  else
-    note "Cancelled / auth failed"
-  fi
+  run_term "sudo-setup: $label" \
+    "set -e; echo 'Applying: $label'; sudo install -m 0440 -o root -g root '$tmp' '$dest' && sudo visudo -c && echo '✓ done'"
   rm -f "$tmp"
+  note "$label — check the terminal"
 }
 
-remove_dropin() {                     # $1=path
-  if [ ! -e "$1" ]; then note "Not set: $(basename "$1")"; exit 0; fi
-  run_priv rm -f "$1" && note "Removed: $(basename "$1")" || note "Cancelled / auth failed"
+remove_dropin() {                     # $1=path  $2=label
+  run_term "sudo-setup: $2" \
+    "set -e; echo 'Removing: $2'; sudo rm -f '$1' && echo '✓ done'"
+  note "$2 — check the terminal"
 }
 
 case "$sel" in
-  Show*)         install_dropin "$FB" "Defaults env_reset,pwfeedback" ;;
-  Passwordless*) install_dropin "$NP" "${USER_NAME} ALL=(ALL:ALL) NOPASSWD: ALL" ;;
-  Require*)      remove_dropin "$NP" ;;
-  Disable*)      remove_dropin "$FB" ;;
+  Show*)     install_dropin "$FB" "Defaults env_reset,pwfeedback" "password feedback (***)" ;;
+  Disable*)  remove_dropin "$FB" "disable *** feedback" ;;
+  Remove*)   install_dropin "$NP" "${USER_NAME} ALL=(ALL:ALL) NOPASSWD: ALL" "passwordless sudo" ;;
+  Require*)  remove_dropin "$NP" "require sudo password" ;;
+  Change*)   run_term "sudo-setup: change password" "echo 'Change your login/sudo password:'; passwd" ;;
   *) exit 0 ;;
 esac
