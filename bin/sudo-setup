@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# sudo-setup — configure sudo password behaviour from a fuzzel menu.
+#
+# Writes validated drop-ins into /etc/sudoers.d/ as root via pkexec (graphical
+# polkit prompt), so it works when launched from a Hyprland keybind. Every file
+# is syntax-checked with `visudo -cf` BEFORE install — a bad sudoers file can
+# lock you out of sudo, so an invalid one is refused, never written.
+#
+#   pwfeedback  — show *** while typing the sudo password (helps when the cz/us
+#                 layout makes a blind password entry fail)
+#   NOPASSWD    — passwordless sudo for the current user
+#
+# Deps: fuzzel (or PICKER=rofi), pkexec, visudo, notify-send.
+set -uo pipefail
+
+PICKER=${PICKER:-fuzzel}
+USER_NAME=$(id -un)
+FB=/etc/sudoers.d/00-pwfeedback
+NP="/etc/sudoers.d/10-nopasswd-${USER_NAME}"
+
+note() { notify-send -i security-high "sudo-setup" "$1" 2>/dev/null || printf '%s\n' "$1"; }
+
+menu='Show *** while typing password (pwfeedback)
+Passwordless sudo for me (NOPASSWD)
+Require password again (remove passwordless)
+Disable *** feedback'
+
+case "$PICKER" in
+  fuzzel) sel=$(printf '%s' "$menu" | fuzzel --dmenu --prompt "sudo> ") ;;
+  rofi)   sel=$(printf '%s' "$menu" | rofi -dmenu -p "sudo") ;;
+  *)      sel=$(printf '%s' "$menu" | "$PICKER") ;;
+esac
+[ -n "${sel:-}" ] || exit 0          # cancelled
+
+# run a command as root: pkexec (graphical) if a polkit agent is around,
+# else fall back to a terminal sudo prompt.
+run_priv() {
+  if command -v pkexec >/dev/null 2>&1 && pkexec "$@"; then return 0; fi
+  command -v kitty >/dev/null 2>&1 && exec kitty --title "sudo-setup" -e sudo "$@"
+  sudo "$@"
+}
+
+install_dropin() {                    # $1=dest  $2=content
+  local dest=$1 content=$2 tmp
+  tmp=$(mktemp)
+  printf '%s\n' "$content" > "$tmp"
+  if ! visudo -cf "$tmp" >/dev/null 2>&1; then
+    note "Refused: invalid sudoers syntax"; rm -f "$tmp"; exit 1
+  fi
+  if run_priv install -m 0440 -o root -g root "$tmp" "$dest"; then
+    note "Applied: $(basename "$dest")"
+  else
+    note "Cancelled / auth failed"
+  fi
+  rm -f "$tmp"
+}
+
+remove_dropin() {                     # $1=path
+  if [ ! -e "$1" ]; then note "Not set: $(basename "$1")"; exit 0; fi
+  run_priv rm -f "$1" && note "Removed: $(basename "$1")" || note "Cancelled / auth failed"
+}
+
+case "$sel" in
+  Show*)         install_dropin "$FB" "Defaults env_reset,pwfeedback" ;;
+  Passwordless*) install_dropin "$NP" "${USER_NAME} ALL=(ALL:ALL) NOPASSWD: ALL" ;;
+  Require*)      remove_dropin "$NP" ;;
+  Disable*)      remove_dropin "$FB" ;;
+  *) exit 0 ;;
+esac

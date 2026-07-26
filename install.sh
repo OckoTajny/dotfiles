@@ -311,7 +311,7 @@ run_uninstall() {
     y|yes) ;;
     *) echo "Aborted."; exit 0 ;;
   esac
-  rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/whisper-flow" "$BIN/kb-toggle" "$BIN/set-primary-monitor" "$BIN/ambxst"
+  rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/whisper-flow" "$BIN/kb-toggle" "$BIN/set-primary-monitor" "$BIN/sudo-setup" "$BIN/ambxst"
   ok "removed dotswap tools from $BIN"
   for p in "${PROFILES[@]}"; do
     rm -rf "${SRC_BASE:?}/chezmoi-$p"
@@ -600,7 +600,7 @@ done
 # 4. install the dotswap tools + whisper-flow ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
-TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle set-primary-monitor ambxst)
+TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle set-primary-monitor sudo-setup ambxst)
 self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")
 if [ -n "$self_dir" ] && [ -d "$self_dir/bin" ]; then
   install -Dm755 "$self_dir/bin/"* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
