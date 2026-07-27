@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Expose the phone's DroidCam OBS server on 127.0.0.1 over USB.
+#
+# OBS is a flatpak and the DroidCam plugin ships no adb, so its own USB mode
+# cannot reach the phone from inside the sandbox. The forward is set up out
+# here instead, and OBS connects to it as if it were a network camera.
+#
+# In OBS: add a "DroidCam OBS" source, connection type WiFi/Network,
+#         host 127.0.0.1, port 4747.
+
+set -u
+PORT="${DROIDCAM_PORT:-4747}"
+APP=com.dev47apps.obsdroidcam
+
+if ! command -v adb >/dev/null; then
+	echo "adb is missing: sudo pacman -S android-tools" >&2
+	exit 1
+fi
+
+state=$(adb get-state 2>/dev/null)
+if [ "$state" != "device" ]; then
+	echo "No phone over adb (state: ${state:-none})." >&2
+	echo "Plug in the cable, enable USB debugging, and accept the prompt." >&2
+	exit 1
+fi
+
+adb forward --remove tcp:$PORT >/dev/null 2>&1
+adb forward tcp:$PORT tcp:$PORT >/dev/null || exit 1
+
+# Start the phone app if it is not already up; harmless if it is.
+adb shell monkey -p $APP -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+
+for _ in $(seq 1 10); do
+	if timeout 1 bash -c "echo > /dev/tcp/127.0.0.1/$PORT" 2>/dev/null; then
+		echo "DroidCam ready on 127.0.0.1:$PORT"
+		echo "In OBS pick connection type WiFi/Network and use that address."
+		exit 0
+	fi
+	sleep 1
+done
+
+echo "Forward is up but the phone is not answering on $PORT." >&2
+echo "Open the DroidCam app on the phone and allow camera access." >&2
+exit 1

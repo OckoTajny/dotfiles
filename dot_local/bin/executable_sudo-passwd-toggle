@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Super+P: toggle passwordless sudo, with a notification.
+#
+# The sudoers edit itself happens in the root helper
+# /usr/local/bin/sudo-nopasswd-toggle, which this user may run without a
+# password thanks to one narrow rule in /etc/sudoers.d/50-<user>-toggle-helper.
+# Both are created by the dotfiles installer — nothing here needs a password,
+# a terminal, or a polkit agent.
+set -uo pipefail
+
+HELPER=/usr/local/bin/sudo-nopasswd-toggle
+USER_NAME=$(id -un)
+
+state=$(sudo -n "$HELPER" 2>/dev/null) || {
+    notify-send -u critical "sudo toggle" \
+        "Helper selhal — spusť installer, nebo zkontroluj /etc/sudoers.d/50-${USER_NAME}-toggle-helper"
+    exit 1
+}
+
+case $state in
+    enabled)  notify-send -i security-low  "sudo" "🔓 Sudo BEZ hesla" ;;
+    disabled) notify-send -i security-high "sudo" "🔒 Sudo zase chce heslo" ;;
+    *)        notify-send -u critical "sudo toggle" "Neznámý stav: $state" ;;
+esac

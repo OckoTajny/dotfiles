@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Drive DualSense rumble from whatever is playing (DSX-style "audio to haptics").
+
+The controller's voice coils can be fed audio directly on channels 3-4, but
+hid-playstation puts the DualSense in compatible-vibration mode, where the coils
+follow force-feedback commands and the audio channels are ignored. So instead of
+streaming audio at them, we listen to a sink monitor, split it into a low and a
+mid band, and map those onto the strong and weak motors.
+
+Usage: ds5-audio-haptics [--source MONITOR] [--gain N] [--device /dev/input/eventN]
+"""
+import argparse
+import fcntl
+import os
+import re
+import struct
+import subprocess
+import sys
+import time
+
+RATE = 22050
+CHUNK = 1024  # ~46ms per update
+EV_FF = 0x15
+FF_RUMBLE = 0x50
+EVIOCSFF = (1 << 30) | (48 << 16) | (0x45 << 8) | 0x80
+
+
+def find_gamepad():
+    """Return the DualSense event device that carries force feedback."""
+    with open("/proc/bus/input/devices") as fh:
+        blocks = fh.read().split("\n\n")
+    for block in blocks:
+        if "DualSense Wireless Controller" not in block:
+            continue
+        if "Motion Sensors" in block or "Touchpad" in block or "Jack" in block:
+            continue
+        m = re.search(r"event(\d+)", block)
+        if m:
+            return "/dev/input/event" + m.group(1)
+    return None
+
+
+def find_monitor():
+    """Default sink's monitor source, i.e. whatever the user is hearing."""
+    sink = subprocess.run(["pactl", "get-default-sink"], capture_output=True,
+                          text=True).stdout.strip()
+    return sink + ".monitor" if sink else None
+
+
+class Rumble:
+    def __init__(self, path):
+        self.fh = open(path, "r+b", buffering=0)
+        self.id = -1
+        self.last = (-1, -1)
+
+    def set(self, strong, weak):
+        # Re-uploading with the same id updates the effect in place.
+        if (strong, weak) == self.last:
+            return
+        buf = bytearray(struct.pack("HhHHHHH2x HH28x", FF_RUMBLE, self.id, 0,
+                                    0, 0, 30000, 0, strong, weak))
+        fcntl.ioctl(self.fh, EVIOCSFF, buf)
+        self.id = struct.unpack_from("Hh", buf, 0)[1]
+        self.fh.write(struct.pack("qqHHi", 0, 0, EV_FF, self.id, 1))
+        self.last = (strong, weak)
+
+    def close(self):
+        try:
+            self.set(0, 0)
+        finally:
+            self.fh.close()
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--source", help="monitor source to listen to")
+    ap.add_argument("--device", help="DualSense event device")
+    ap.add_argument("--gain", type=float, default=6.0)
+    ap.add_argument("--floor", type=float, default=0.010,
+                    help="ignore anything quieter than this (0-1)")
+    ap.add_argument("--debug", action="store_true", help="print levels")
+    args = ap.parse_args()
+
+    dev = args.device or find_gamepad()
+    if not dev:
+        sys.exit("No DualSense found. Connect it first.")
+    src = args.source or find_monitor()
+    if not src:
+        sys.exit("Could not work out which sink to listen to.")
+
+    print(f"controller: {dev}\nlistening to: {src}\nCtrl+C to stop")
+
+    ff = Rumble(dev)
+    proc = subprocess.Popen(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "pulse",
+         "-i", src, "-ac", "1", "-ar", str(RATE), "-f", "s16le", "-"],
+        stdout=subprocess.PIPE)
+
+    # One-pole filters: lp follows the bass, band is what's left below ~1kHz.
+    lp = 0.0
+    mid = 0.0
+    env_s = env_w = 0.0
+    try:
+        while True:
+            raw = proc.stdout.read(CHUNK * 2)
+            if not raw or len(raw) < CHUNK * 2:
+                break
+            samples = struct.unpack(f"<{len(raw)//2}h", raw)
+            acc_lo = acc_mid = 0.0
+            for s in samples:
+                x = s / 32768.0
+                lp += 0.030 * (x - lp)        # ~100 Hz  -> strong motor
+                mid += 0.180 * (x - mid)      # ~600 Hz  -> weak motor
+                acc_lo += lp * lp
+                acc_mid += (mid - lp) ** 2
+            n = len(samples)
+            lo = (acc_lo / n) ** 0.5
+            hi = (acc_mid / n) ** 0.5
+
+            def curve(v):
+                v = max(0.0, v - args.floor) * args.gain
+                return min(1.0, v ** 0.7)
+
+            ts, tw = curve(lo), curve(hi * 0.8)
+            # Fast attack, slow release, so hits punch and then fade.
+            env_s = ts if ts > env_s else env_s + 0.35 * (ts - env_s)
+            env_w = tw if tw > env_w else env_w + 0.35 * (tw - env_w)
+            ff.set(int(env_s * 0xFFFF), int(env_w * 0xFFFF))
+            if args.debug:
+                bar = "#" * int(env_s * 40)
+                print(f"lo={lo:.4f} hi={hi:.4f} strong={env_s:.2f} weak={env_w:.2f} {bar}",
+                      flush=True)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        ff.close()
+        proc.terminate()
+
+
+if __name__ == "__main__":
+    main()

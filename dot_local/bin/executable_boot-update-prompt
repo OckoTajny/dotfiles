@@ -1,0 +1,60 @@
+#!/bin/bash
+# Runs on Hyprland start: asks whether to update all packages and (if the
+# dotfiles repo has new upstream commits) whether to pull + apply them.
+# Runs in a floating kitty so you see progress / can enter sudo password.
+sleep 6  # let Ambxst (notification daemon) and network come up
+
+# --- dotfiles: check active dotswap profile source for upstream changes ---
+PROFILE=$(cat "$HOME/.local/state/dotswap-profile" 2>/dev/null)
+SRC="$HOME/.local/share/chezmoi-$PROFILE"
+BRANCH="" DOTF_BEHIND=0
+if [[ -n $PROFILE && -d $SRC/.git ]]; then
+  if git -C "$SRC" fetch -q origin 2>/dev/null; then
+    BRANCH=$(git -C "$SRC" branch --show-current)
+    DOTF_BEHIND=$(git -C "$SRC" rev-list --count "HEAD..origin/$BRANCH" 2>/dev/null || echo 0)
+  fi
+fi
+export PROFILE SRC BRANCH DOTF_BEHIND
+
+kitty --class update-prompt --title "System update" -e bash -c '
+  echo    "╭──────────────────────────────────────╮"
+  echo    "│  Aktualizovat všechny balíčky?       │"
+  echo    "│  (yay -Syu --noconfirm)              │"
+  echo    "╰──────────────────────────────────────╯"
+  read -rp "  [y/N] " ans
+  if [[ $ans == [yY]* ]]; then
+    notify-send "System update" "⏳ Spouštím yay -Syu…"
+    if yay -Syu --noconfirm; then
+      notify-send "System update" "✅ Všechny balíčky aktualizovány"
+    else
+      notify-send -u critical "System update" "❌ Update selhal — mrkni do terminálu"
+      read -rp "Update selhal. Enter pro zavření… "
+    fi
+  else
+    notify-send "System update" "⏭️ Update přeskočen"
+  fi
+
+  # --- dotfiles update prompt (only when upstream has new commits) ---
+  if [[ ${DOTF_BEHIND:-0} -gt 0 ]]; then
+    echo
+    echo  "╭──────────────────────────────────────╮"
+    printf "│  Dotfiles (%s): %s nových commitů\n" "$PROFILE" "$DOTF_BEHIND"
+    echo  "╰──────────────────────────────────────╯"
+    git -C "$SRC" log --oneline "HEAD..origin/$BRANCH" | head -10 | sed "s/^/    /"
+    read -rp "  Stáhnout a aplikovat? [y/N] " dans
+    if [[ $dans == [yY]* ]]; then
+      notify-send "Dotfiles" "⏳ Aktualizuji profil $PROFILE…"
+      dotswap save >/dev/null   # snapshot live state first — nothing can get lost
+      if git -C "$SRC" pull --rebase --autostash origin "$BRANCH" \
+         && chezmoi --source "$SRC" apply --force; then
+        notify-send "Dotfiles" "✅ Profil $PROFILE aktualizován (hyprctl reload / relogin pro compositor změny)"
+      else
+        git -C "$SRC" rebase --abort 2>/dev/null
+        notify-send -u critical "Dotfiles" "❌ Update selhal (konflikt?) — mrkni do $SRC"
+        read -rp "Dotfiles update selhal. Enter pro zavření… "
+      fi
+    else
+      notify-send "Dotfiles" "⏭️ Dotfiles update přeskočen"
+    fi
+  fi
+'
