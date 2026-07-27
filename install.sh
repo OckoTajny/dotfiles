@@ -294,6 +294,8 @@ run_uninstall() {
   echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,whisper-flow,kb-toggle,ambxst}"
   echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,caelestia}"
   echo "  - ~/.local/state/dotswap-profile"
+  echo "  - /usr/local/bin/sudo-nopasswd-toggle + its sudoers rule (restores the"
+  echo "    sudo password prompt if the toggle left it off)"
   echo
   echo "It does NOT remove: installed packages, ~/.config/hypr (your live config),"
   echo "Ambxst itself, or the SDDM theme – those are shared system state an"
@@ -313,6 +315,12 @@ run_uninstall() {
   esac
   rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/whisper-flow" "$BIN/kb-toggle" "$BIN/set-primary-monitor" "$BIN/sudo-setup" "$BIN/ambxst"
   ok "removed dotswap tools from $BIN"
+  # drop the root-owned half of the Super+P toggle, and make sure it doesn't
+  # leave the machine sitting on passwordless sudo
+  sudo rm -f "/etc/sudoers.d/50-${USER}-toggle-helper" "/etc/sudoers.d/10-${USER}-nopasswd" \
+    /usr/local/bin/sudo-nopasswd-toggle >/dev/null 2>&1 \
+    && ok "removed sudo toggle helper (password prompt restored)" \
+    || warn "could not remove sudo toggle helper – check /etc/sudoers.d"
   for p in "${PROFILES[@]}"; do
     rm -rf "${SRC_BASE:?}/chezmoi-$p"
   done
@@ -600,7 +608,7 @@ done
 # 4. install the dotswap tools + whisper-flow ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
-TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle set-primary-monitor sudo-setup ambxst)
+TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle set-primary-monitor ambxst)
 self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")
 if [ -n "$self_dir" ] && [ -d "$self_dir/bin" ]; then
   install -Dm755 "$self_dir/bin/"* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
@@ -625,6 +633,82 @@ if need uv; then
   fi
 else
   warn "uv missing – skipping whisper-ctranslate2 (dictation engine)"
+fi
+
+# 4b. sudo toggle helper (Super+P) --------------------------------------------
+# ~/.local/bin/sudo-passwd-toggle ships with the profile, but the part that
+# actually edits sudoers has to live outside $HOME and run as root, so chezmoi
+# can't place it. Installed here instead:
+#
+#   /usr/local/bin/sudo-nopasswd-toggle      root-owned, does the toggling
+#   /etc/sudoers.d/50-<user>-toggle-helper   lets <user> run ONLY that, NOPASSWD
+#
+# The rule is deliberately narrow — one absolute path, root-owned and
+# root-writable-only — so it grants nothing beyond flipping the drop-in. Both
+# files are validated with `visudo -c` before they go live; a malformed sudoers
+# file locks you out of sudo entirely.
+say "Sudo toggle helper (Super+P)"
+SUDO_HELPER=/usr/local/bin/sudo-nopasswd-toggle
+SUDO_RULE="/etc/sudoers.d/50-${USER}-toggle-helper"
+
+if [ "$MODE" = doctor ]; then
+  [ -x "$SUDO_HELPER" ] && ok "helper present" || warn "helper missing ($SUDO_HELPER)"
+  sudo -n "$SUDO_HELPER" --check >/dev/null 2>&1 \
+    && ok "passwordless helper rule works" \
+    || warn "helper not reachable without a password (rule missing?)"
+else
+  helper_tmp=$(mktemp) rule_tmp=$(mktemp)
+  cat > "$helper_tmp" <<'HELPER_EOF'
+#!/bin/bash
+# Toggle passwordless sudo for the invoking user.
+#
+# Only reachable through the single NOPASSWD rule in
+# /etc/sudoers.d/50-<user>-toggle-helper, so SUDO_USER is exactly the user that
+# rule names — but it is still validated here rather than trusted, since this
+# runs as root.
+set -euo pipefail
+
+USER_NAME=${SUDO_USER:-}
+[ -n "$USER_NAME" ] && [ "$USER_NAME" != root ] || { echo "error: no SUDO_USER"; exit 1; }
+id -u "$USER_NAME" >/dev/null 2>&1 || { echo "error: unknown user"; exit 1; }
+
+DROPIN="/etc/sudoers.d/10-${USER_NAME}-nopasswd"
+
+# --check just reports reachability; used by the installer's doctor mode.
+if [ "${1:-}" = --check ]; then echo ok; exit 0; fi
+
+if [ -e "$DROPIN" ]; then
+    rm -f "$DROPIN"
+    echo disabled
+else
+    # sudoers skips filenames containing a dot, so the .tmp is never parsed
+    # even in the window before it is renamed.
+    printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$USER_NAME" > "$DROPIN.tmp"
+    chmod 0440 "$DROPIN.tmp"
+    if visudo -cf "$DROPIN.tmp" >/dev/null; then
+        mv "$DROPIN.tmp" "$DROPIN"
+        echo enabled
+    else
+        rm -f "$DROPIN.tmp"
+        echo error
+        exit 1
+    fi
+fi
+HELPER_EOF
+  printf '%s ALL=(root) NOPASSWD: %s\n' "$USER" "$SUDO_HELPER" > "$rule_tmp"
+
+  if ! visudo -cf "$rule_tmp" >/dev/null 2>&1; then
+    warn "sudoers rule failed validation – skipped (Super+P will ask for a password)"
+  elif sudo install -Dm755 -o root -g root "$helper_tmp" "$SUDO_HELPER" >/dev/null 2>&1 \
+    && sudo install -Dm440 -o root -g root "$rule_tmp" "$SUDO_RULE" >/dev/null 2>&1 \
+    && sudo visudo -c >/dev/null 2>&1; then
+    ok "Super+P toggle ready (helper + narrow NOPASSWD rule)"
+  else
+    # never leave a half-installed rule behind
+    sudo rm -f "$SUDO_RULE" >/dev/null 2>&1
+    warn "could not install sudo helper – Super+P will report 'Helper selhal'"
+  fi
+  rm -f "$helper_tmp" "$rule_tmp"
 fi
 
 # 5. login screen theme (only if SDDM is the active display manager – no
