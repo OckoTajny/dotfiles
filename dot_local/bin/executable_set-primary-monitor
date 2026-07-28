@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# set-primary-monitor — pick which monitor is "primary", and how the others sit
+# around it.
+#
+# Hyprland has no native primary flag, so primary = the monitor at origin 0x0:
+# that's where workspace 1 lands, what XWayland reports via `xrandr --primary`,
+# and where most apps put themselves. The chosen monitor goes to 0x0 and the
+# rest are laid out in the direction you pick — right, left, above or below —
+# each one centred on the primary's other axis.
+#
+# Both the monitor positions AND the "workspace 1 lives here" rule are written
+# to ~/.config/hypr/monitors.conf. The workspace rule has to move with the
+# primary; pinning it to a monitor name in a shared config is what made the
+# laptop boot onto workspace 2, because it was still pinned to the desktop's
+# DP-2.
+#
+# Deps: hyprctl, jq, fuzzel (or set PICKER=rofi), notify-send. xrandr optional.
+set -uo pipefail
+
+CONF="$HOME/.config/hypr/monitors.conf"
+PICKER=${PICKER:-fuzzel}
+
+note() { notify-send -i video-display "Primary monitor" "$1" 2>/dev/null || printf '%s\n' "$1"; }
+
+# Named run_picker, not pick: a function shadows an external command of the
+# same name, so a PICKER that happened to match would call this recursively.
+run_picker() {  # $1=prompt, menu lines on stdin
+  case "$PICKER" in
+    fuzzel) fuzzel --dmenu --prompt "$1> " ;;
+    rofi)   rofi -dmenu -p "$1" ;;
+    *)      command "$PICKER" ;;
+  esac
+}
+
+mons_json=$(hyprctl monitors -j 2>/dev/null) || { note "hyprctl not reachable"; exit 1; }
+count=$(printf '%s' "$mons_json" | jq 'length')
+[ "$count" -ge 1 ] || { note "No monitors detected"; exit 1; }
+
+# menu lines: "name<TAB>label" — label is shown, name is the key
+menu=$(printf '%s' "$mons_json" | jq -r '.[] |
+  "\(.name)\t\(.name) — \(.description) (\(.width)x\(.height)@\(.refreshRate|floor)Hz\(if .focused then ", focused" else "" end))"')
+
+if [ "$count" -eq 1 ]; then
+  # Nothing to choose between; skip straight to pinning the only screen.
+  chosen=$(cut -f1 <<<"$menu")
+  DIR=right
+else
+  sel=$(cut -f2 <<<"$menu" | run_picker "Primary")
+  [ -n "${sel:-}" ] || exit 0                       # cancelled
+  chosen=$(awk -F'\t' -v l="$sel" '$2==l{print $1; exit}' <<<"$menu")
+  [ -n "$chosen" ] || { note "Unknown selection"; exit 1; }
+
+  dsel=$(printf '%s\n' \
+    "→  others to the RIGHT of $chosen" \
+    "←  others to the LEFT of $chosen" \
+    "↑  others ABOVE $chosen" \
+    "↓  others BELOW $chosen" | run_picker "Layout")
+  [ -n "${dsel:-}" ] || exit 0
+  case "$dsel" in
+    →*) DIR=right ;; ←*) DIR=left ;; ↑*) DIR=above ;; ↓*) DIR=below ;;
+    *)  DIR=right ;;
+  esac
+fi
+
+# logical size = physical / scale, rounded — that's what Hyprland lays out with
+logical() { awk -v v="$1" -v s="$2" 'BEGIN{printf "%d", (v/s)+0.5}'; }
+
+read -r pw ph pr pscale < <(printf '%s' "$mons_json" | jq -r --arg n "$chosen" \
+  '.[] | select(.name==$n) | "\(.width) \(.height) \(.refreshRate|floor) \(.scale)"')
+PW=$(logical "$pw" "$pscale"); PH=$(logical "$ph" "$pscale")
+
+# others in their current on-screen order, so re-running doesn't shuffle them
+readarray -t others < <(
+  printf '%s' "$mons_json" | jq -r --arg c "$chosen" \
+    '[.[] | select(.name!=$c)] | sort_by(.x, .y) | .[].name'
+)
+
+lines=("monitor=$chosen,${pw}x${ph}@${pr},0x0,${pscale}")
+hyprctl keyword monitor "$chosen,${pw}x${ph}@${pr},0x0,${pscale}" >/dev/null 2>&1
+
+# cursor walks away from the primary in the chosen direction; the cross-axis is
+# centred on the primary so screens line up through the middle, not at an edge
+off=0
+for name in "${others[@]}"; do
+  read -r w h r scale < <(printf '%s' "$mons_json" | jq -r --arg n "$name" \
+    '.[] | select(.name==$n) | "\(.width) \(.height) \(.refreshRate|floor) \(.scale)"')
+  lw=$(logical "$w" "$scale"); lh=$(logical "$h" "$scale")
+  case "$DIR" in
+    right) off=$((off + (off == 0 ? PW : 0))); x=$off;              y=$(( (PH - lh) / 2 )); off=$((off + lw)) ;;
+    left)  off=$((off + lw));                  x=$(( -off ));        y=$(( (PH - lh) / 2 )) ;;
+    below) off=$((off + (off == 0 ? PH : 0))); y=$off;              x=$(( (PW - lw) / 2 )); off=$((off + lh)) ;;
+    above) off=$((off + lh));                  y=$(( -off ));        x=$(( (PW - lw) / 2 )) ;;
+  esac
+  spec="$name,${w}x${h}@${r},${x}x${y},${scale}"
+  hyprctl keyword monitor "$spec" >/dev/null 2>&1
+  lines+=("monitor=$spec")
+done
+
+# Workspace 1 follows the primary, otherwise a machine without that monitor
+# boots onto workspace 2 instead.
+lines+=("workspace = 1, monitor:$chosen, default:true")
+
+# Persist. Only the monitor= lines for screens we just moved are replaced, plus
+# the workspace rule; everything else is kept — including monitor= lines for
+# DISCONNECTED screens (the dock's externals when running on the bare laptop),
+# so that config survives being away from the desk.
+connected=$(printf '%s\n' "$chosen" "${others[@]}" | sed 's/[].[^$*\/+?(){}|]/\\&/g' | paste -sd'|')
+tmp=$(mktemp)
+grep -vE "^[[:space:]]*(monitor=(${connected}),|workspace = 1,)" "$CONF" 2>/dev/null > "$tmp" || true
+printf '%s\n' "${lines[@]}" >> "$tmp"
+mv "$tmp" "$CONF"
+
+# XWayland apps that ask for a primary output (best-effort, no-op on Wayland)
+command -v xrandr >/dev/null 2>&1 && xrandr --output "$chosen" --primary 2>/dev/null || true
+
+if [ "$count" -eq 1 ]; then
+  note "$chosen is primary (0×0), workspace 1 pinned to it"
+else
+  note "$chosen is primary (0×0) — others $DIR, workspace 1 follows"
+fi
