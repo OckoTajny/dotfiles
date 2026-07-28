@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# voice-to-text: toggle push-to-talk dictation for Wayland.
+# 1st run = start recording. 2nd run = stop, transcribe, type into focused window.
+# Engine: whisper-ctranslate2 (uv tool). Audio: pw-record. Type: wtype.
+# Model: $1, else $VOICE_TO_TEXT_MODEL, else base.
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"  # Hyprland exec gives a minimal PATH
+DIR=/tmp/voice-to-text
+WAV="$DIR/rec.wav"
+TXT="$DIR/rec.txt"
+PIDF="$DIR/rec.pid"
+MODELF="$DIR/model"                                  # model picked at record start, read back at stop
+MODEL="${1:-${VOICE_TO_TEXT_MODEL:-base}}"           # base = fast+ok; large-v3-turbo = slower, much better Czech
+mkdir -p "$DIR"
+
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -t 1500 "voice-to-text" "$1" || true; }
+
+if [[ -f "$PIDF" ]] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
+  # --- stop + transcribe + type ---
+  kill "$(cat "$PIDF")" 2>/dev/null || true
+  rm -f "$PIDF"
+  [[ -s "$MODELF" ]] && MODEL="$(cat "$MODELF")"     # honour whichever bind started the recording
+  sleep 0.2
+  notify "transcribing… ($MODEL)"
+  rm -f "$TXT"
+  whisper-ctranslate2 "$WAV" --model "$MODEL" --output_dir "$DIR" \
+    --output_format txt --task transcribe >"$DIR/err.log" 2>&1 || { notify "transcribe failed – see $DIR/err.log"; exit 1; }
+  text="$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$TXT" | paste -sd' ')"
+  if [[ -n "$text" ]]; then
+    wtype "$text"
+    notify "typed: ${text:0:40}"
+  else
+    notify "empty"
+  fi
+else
+  # --- start recording ---
+  notify "recording ($MODEL)… press bind again to stop"
+  printf '%s' "$MODEL" > "$MODELF"
+  pw-record --rate 16000 --channels 1 "$WAV" &
+  echo $! > "$PIDF"
+fi
