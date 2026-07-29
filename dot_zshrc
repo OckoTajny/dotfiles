@@ -118,3 +118,6 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # npm global bin (agent-browser CLI)
 export PATH="$HOME/.npm-global/bin:$PATH"
+
+# rustup toolchain ahead of pacman rust in /usr/bin
+export PATH="$HOME/.cargo/bin:$PATH"
