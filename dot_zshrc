@@ -109,3 +109,6 @@ alias wipe='cliphist wipe && notify-send "Clipboard emptied"'
 alias update='sudo pacman -Syu'
 alias update-all='yay -Syu'
 alias hypr-update='hyprpm update'
+
+# rustup toolchain ahead of pacman rust in /usr/bin
+export PATH="$HOME/.cargo/bin:$PATH"
