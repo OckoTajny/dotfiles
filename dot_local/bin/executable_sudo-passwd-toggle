@@ -34,13 +34,13 @@ notify() {  # $1=icon  $2=urgency  $3=title  $4=body
 }
 
 state=$(sudo -n "$HELPER" 2>/dev/null) || {
-    notify "$ICON_WARN" critical "Sudo toggle selhal" \
-        "Spusť installer, nebo zkontroluj /etc/sudoers.d/50-${USER_NAME}-toggle-helper"
+    notify "$ICON_WARN" critical "Sudo toggle failed" \
+        "Run the installer, or check /etc/sudoers.d/50-${USER_NAME}-toggle-helper"
     exit 1
 }
 
 case $state in
-    enabled)  notify "$ICON_OPEN" normal   "Sudo bez hesla" "🔓 Odemčeno — sudo se neptá na heslo" ;;
-    disabled) notify "$ICON_SHUT" normal   "Sudo s heslem"  "🔒 Zamčeno — sudo zase chce heslo" ;;
-    *)        notify "$ICON_WARN" critical "Sudo toggle"    "Neznámý stav: $state" ;;
+    enabled)  notify "$ICON_OPEN" normal   "Passwordless sudo" "🔓 Unlocked — sudo won't ask for a password" ;;
+    disabled) notify "$ICON_SHUT" normal   "Sudo needs password" "🔒 Locked — sudo asks for a password again" ;;
+    *)        notify "$ICON_WARN" critical "Sudo toggle"      "Unknown state: $state" ;;
 esac
