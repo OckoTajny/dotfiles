@@ -9,7 +9,7 @@
 # each one centred on the primary's other axis.
 #
 # Both the monitor positions AND the "workspace 1 lives here" rule are written
-# to ~/.config/hypr/monitors.lua. The workspace rule has to move with the
+# to ~/.config/hypr/monitors.conf. The workspace rule has to move with the
 # primary; pinning it to a monitor name in a shared config is what made the
 # laptop boot onto workspace 2, because it was still pinned to the desktop's
 # DP-2.
@@ -17,7 +17,7 @@
 # Deps: hyprctl, jq, fuzzel (or set PICKER=rofi), notify-send. xrandr optional.
 set -uo pipefail
 
-CONF="$HOME/.config/hypr/monitors.lua"
+CONF="$HOME/.config/hypr/monitors.conf"
 PICKER=${PICKER:-fuzzel}
 
 note() { notify-send -i video-display "Primary monitor" "$1" 2>/dev/null || printf '%s\n' "$1"; }
@@ -75,16 +75,8 @@ readarray -t others < <(
     '[.[] | select(.name!=$c)] | sort_by(.x, .y) | .[].name'
 )
 
-# The config is Lua now, so emit hl.monitor() calls. Nothing is applied with
-# `hyprctl keyword` any more — that dispatcher is a no-op under the Lua config
-# provider. The file is written first and `hyprctl reload` applies the whole
-# layout at once, workspace rule included.
-mon_lua() {  # $1=name $2=w $3=h $4=refresh $5=x $6=y $7=scale
-  printf 'hl.monitor({ output = "%s", mode = "%sx%s@%s", position = "%sx%s", scale = %s })' \
-    "$1" "$2" "$3" "$4" "$5" "$6" "$7"
-}
-
-lines=("$(mon_lua "$chosen" "$pw" "$ph" "$pr" 0 0 "$pscale")")
+lines=("monitor=$chosen,${pw}x${ph}@${pr},0x0,${pscale}")
+hyprctl keyword monitor "$chosen,${pw}x${ph}@${pr},0x0,${pscale}" >/dev/null 2>&1
 
 # cursor walks away from the primary in the chosen direction; the cross-axis is
 # centred on the primary so screens line up through the middle, not at an edge
@@ -99,12 +91,14 @@ for name in "${others[@]}"; do
     below) off=$((off + (off == 0 ? PH : 0))); y=$off;              x=$(( (PW - lw) / 2 )); off=$((off + lh)) ;;
     above) off=$((off + lh));                  y=$(( -off ));        x=$(( (PW - lw) / 2 )) ;;
   esac
-  lines+=("$(mon_lua "$name" "$w" "$h" "$r" "$x" "$y" "$scale")")
+  spec="$name,${w}x${h}@${r},${x}x${y},${scale}"
+  hyprctl keyword monitor "$spec" >/dev/null 2>&1
+  lines+=("monitor=$spec")
 done
 
 # Workspace 1 follows the primary, otherwise a machine without that monitor
 # boots onto workspace 2 instead.
-lines+=("hl.workspace_rule({ workspace = \"1\", monitor = \"$chosen\", default = true })")
+lines+=("workspace = 1, monitor:$chosen, default:true")
 
 # Persist. Only the monitor= lines for screens we just moved are replaced, plus
 # the workspace rule; everything else is kept — including monitor= lines for
@@ -112,13 +106,9 @@ lines+=("hl.workspace_rule({ workspace = \"1\", monitor = \"$chosen\", default =
 # so that config survives being away from the desk.
 connected=$(printf '%s\n' "$chosen" "${others[@]}" | sed 's/[].[^$*\/+?(){}|]/\\&/g' | paste -sd'|')
 tmp=$(mktemp)
-grep -vE "^hl\.(monitor\(\{ output = \"(${connected})\"|workspace_rule\(\{ workspace = \"1\")" \
-  "$CONF" 2>/dev/null > "$tmp" || true
+grep -vE "^[[:space:]]*(monitor=(${connected}),|workspace = 1,)" "$CONF" 2>/dev/null > "$tmp" || true
 printf '%s\n' "${lines[@]}" >> "$tmp"
 mv "$tmp" "$CONF"
-
-# Apply the whole file at once.
-hyprctl reload >/dev/null 2>&1
 
 # XWayland apps that ask for a primary output (best-effort, no-op on Wayland)
 command -v xrandr >/dev/null 2>&1 && xrandr --output "$chosen" --primary 2>/dev/null || true
