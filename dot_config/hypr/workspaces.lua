@@ -1,0 +1,4 @@
+-- Extra workspace rules go here.
+-- The "workspace 1 lives on the primary monitor" rule is in monitors.lua,
+-- because set-primary-monitor rewrites it together with the monitor layout.
+-- https://wiki.hyprland.org/Configuring/Workspace-Rules/

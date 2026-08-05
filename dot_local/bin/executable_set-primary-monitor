@@ -14,10 +14,15 @@
 # laptop boot onto workspace 2, because it was still pinned to the desktop's
 # DP-2.
 #
+# The same layout is mirrored into monitors.lua, because the .conf and the Lua
+# config live side by side here (see hypr-config-provider) and whichever one
+# boots next has to find the current monitor layout.
+#
 # Deps: hyprctl, jq, fuzzel (or set PICKER=rofi), notify-send. xrandr optional.
 set -uo pipefail
 
 CONF="$HOME/.config/hypr/monitors.conf"
+LUACONF="$HOME/.config/hypr/monitors.lua"
 PICKER=${PICKER:-fuzzel}
 
 note() { notify-send -i video-display "Primary monitor" "$1" 2>/dev/null || printf '%s\n' "$1"; }
@@ -75,8 +80,13 @@ readarray -t others < <(
     '[.[] | select(.name!=$c)] | sort_by(.x, .y) | .[].name'
 )
 
+mon_lua() {  # $1=name $2=w $3=h $4=refresh $5=x $6=y $7=scale
+  printf 'hl.monitor({ output = "%s", mode = "%sx%s@%s", position = "%sx%s", scale = %s })' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "$7"
+}
+
 lines=("monitor=$chosen,${pw}x${ph}@${pr},0x0,${pscale}")
-hyprctl keyword monitor "$chosen,${pw}x${ph}@${pr},0x0,${pscale}" >/dev/null 2>&1
+lualines=("$(mon_lua "$chosen" "$pw" "$ph" "$pr" 0 0 "$pscale")")
 
 # cursor walks away from the primary in the chosen direction; the cross-axis is
 # centred on the primary so screens line up through the middle, not at an edge
@@ -91,24 +101,42 @@ for name in "${others[@]}"; do
     below) off=$((off + (off == 0 ? PH : 0))); y=$off;              x=$(( (PW - lw) / 2 )); off=$((off + lh)) ;;
     above) off=$((off + lh));                  y=$(( -off ));        x=$(( (PW - lw) / 2 )) ;;
   esac
-  spec="$name,${w}x${h}@${r},${x}x${y},${scale}"
-  hyprctl keyword monitor "$spec" >/dev/null 2>&1
-  lines+=("monitor=$spec")
+  lines+=("monitor=$name,${w}x${h}@${r},${x}x${y},${scale}")
+  lualines+=("$(mon_lua "$name" "$w" "$h" "$r" "$x" "$y" "$scale")")
 done
 
 # Workspace 1 follows the primary, otherwise a machine without that monitor
 # boots onto workspace 2 instead.
 lines+=("workspace = 1, monitor:$chosen, default:true")
+lualines+=("hl.workspace_rule({ workspace = \"1\", monitor = \"$chosen\", default = true })")
 
-# Persist. Only the monitor= lines for screens we just moved are replaced, plus
-# the workspace rule; everything else is kept — including monitor= lines for
+# Persist. Only the monitor lines for screens we just moved are replaced, plus
+# the workspace rule; everything else is kept — including monitor lines for
 # DISCONNECTED screens (the dock's externals when running on the bare laptop),
 # so that config survives being away from the desk.
 connected=$(printf '%s\n' "$chosen" "${others[@]}" | sed 's/[].[^$*\/+?(){}|]/\\&/g' | paste -sd'|')
-tmp=$(mktemp)
-grep -vE "^[[:space:]]*(monitor=(${connected}),|workspace = 1,)" "$CONF" 2>/dev/null > "$tmp" || true
-printf '%s\n' "${lines[@]}" >> "$tmp"
-mv "$tmp" "$CONF"
+
+rewrite() {  # $1=file  $2=regex of generated lines to drop  rest: replacement lines
+  local file=$1 drop=$2; shift 2
+  local tmp; tmp=$(mktemp)
+  grep -vE "$drop" "$file" 2>/dev/null > "$tmp" || true
+  printf '%s\n' "$@" >> "$tmp"
+  mv "$tmp" "$file"
+}
+
+rewrite "$CONF" "^[[:space:]]*(monitor=(${connected}),|workspace = 1,)" "${lines[@]}"
+rewrite "$LUACONF" \
+  "^hl\.(monitor\(\{ output = \"(${connected})\"|workspace_rule\(\{ workspace = \"1\")" "${lualines[@]}"
+
+# Apply live. `hyprctl keyword` is a no-op under the Lua config provider, so
+# there the whole file is re-read instead.
+if [ "$(hyprctl systeminfo 2>/dev/null | sed -n 's/^configProvider: *//p')" = "lua" ]; then
+  hyprctl reload >/dev/null 2>&1
+else
+  for spec in "${lines[@]}"; do
+    case "$spec" in monitor=*) hyprctl keyword monitor "${spec#monitor=}" >/dev/null 2>&1 ;; esac
+  done
+fi
 
 # XWayland apps that ask for a primary output (best-effort, no-op on Wayland)
 command -v xrandr >/dev/null 2>&1 && xrandr --output "$chosen" --primary 2>/dev/null || true
