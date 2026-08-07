@@ -45,7 +45,6 @@ local float_45 = {
     "^(pavucontrol)$",
     "^(org.pulseaudio.pavucontrol)$",
     "^(nm-connection-editor)$",
-    "^(Zotero)$",
 }
 for _, c in ipairs(float_45) do
     hl.window_rule({
@@ -55,6 +54,14 @@ for _, c in ipairs(float_45) do
         size   = "(monitor_w*.45) (monitor_h*.45)",
     })
 end
+
+-- Zotero gets the same size but is deliberately not centred, matching the
+-- upstream .conf rules.
+hl.window_rule({
+    match = { class = "^(Zotero)$" },
+    float = true,
+    size  = "(monitor_w*.45) (monitor_h*.45)",
+})
 
 hl.window_rule({
     match = { class = "org.freedesktop.impl.portal.desktop.kde" },
