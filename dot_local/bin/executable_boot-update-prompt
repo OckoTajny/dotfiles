@@ -18,43 +18,47 @@ export PROFILE SRC BRANCH DOTF_BEHIND
 
 kitty --class update-prompt --title "System update" -e bash -c '
   echo    "╭──────────────────────────────────────╮"
-  echo    "│  Update all packages?                │"
+  echo    "│  Aktualizovat všechny balíčky?       │"
   echo    "│  (yay -Syu --noconfirm)              │"
   echo    "╰──────────────────────────────────────╯"
   read -rp "  [y/N] " ans
   if [[ $ans == [yY]* ]]; then
-    notify-send "System update" "⏳ Running yay -Syu…"
+    notify-send "System update" "⏳ Spouštím yay -Syu…"
     if yay -Syu --noconfirm; then
-      notify-send "System update" "✅ All packages updated"
+      notify-send "System update" "✅ Všechny balíčky aktualizovány"
     else
-      notify-send -u critical "System update" "❌ Update failed — check the terminal"
-      read -rp "Update failed. Enter to close… "
+      notify-send -u critical "System update" "❌ Update selhal — mrkni do terminálu"
+      read -rp "Update selhal. Enter pro zavření… "
     fi
   else
-    notify-send "System update" "⏭️ Update skipped"
+    notify-send "System update" "⏭️ Update přeskočen"
   fi
 
   # --- dotfiles update prompt (only when upstream has new commits) ---
   if [[ ${DOTF_BEHIND:-0} -gt 0 ]]; then
     echo
     echo  "╭──────────────────────────────────────╮"
-    printf "│  Dotfiles (%s): %s new commits\n" "$PROFILE" "$DOTF_BEHIND"
+    printf "│  Dotfiles (%s): %s nových commitů\n" "$PROFILE" "$DOTF_BEHIND"
     echo  "╰──────────────────────────────────────╯"
     git -C "$SRC" log --oneline "HEAD..origin/$BRANCH" | head -10 | sed "s/^/    /"
-    read -rp "  Pull and apply? [y/N] " dans
+    read -rp "  Stáhnout a aplikovat? [y/N] " dans
     if [[ $dans == [yY]* ]]; then
-      notify-send "Dotfiles" "⏳ Updating profile $PROFILE…"
+      notify-send "Dotfiles" "⏳ Aktualizuji profil $PROFILE…"
       dotswap save >/dev/null   # snapshot live state first — nothing can get lost
-      if git -C "$SRC" pull --rebase --autostash origin "$BRANCH" \
+      # Snapshot commits are a machine-local mirror of disk, so rebasing them onto
+      # upstream conflicts on every per-machine file (monitors.conf, …). Take upstream
+      # wholesale instead; the snapshot stays reachable at dotswap-local-backup.
+      if git -C "$SRC" fetch -q origin "$BRANCH" \
+         && git -C "$SRC" branch -f dotswap-local-backup HEAD \
+         && git -C "$SRC" reset -q --hard FETCH_HEAD \
          && chezmoi --source "$SRC" apply --force; then
-        notify-send "Dotfiles" "✅ Profile $PROFILE updated (hyprctl reload / relogin for compositor changes)"
+        notify-send "Dotfiles" "✅ Profil $PROFILE aktualizován (hyprctl reload / relogin pro compositor změny)"
       else
-        git -C "$SRC" rebase --abort 2>/dev/null
-        notify-send -u critical "Dotfiles" "❌ Update failed (conflict?) — check $SRC"
-        read -rp "Dotfiles update failed. Enter to close… "
+        notify-send -u critical "Dotfiles" "❌ Update selhal — mrkni do $SRC (záloha: dotswap-local-backup)"
+        read -rp "Dotfiles update selhal. Enter pro zavření… "
       fi
     else
-      notify-send "Dotfiles" "⏭️ Dotfiles update skipped"
+      notify-send "Dotfiles" "⏭️ Dotfiles update přeskočen"
     fi
   fi
 '
