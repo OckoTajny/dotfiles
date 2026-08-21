@@ -1,10 +1,7 @@
 {
     "apps": [
-        "brave-browser",
-        "discord",
         "kitty",
-        "Spotify",
-        "zen",
-        "steam"
+        "brave-browser",
+        "jetbrains-idea"
     ]
 }

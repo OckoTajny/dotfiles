@@ -1,6 +1,5 @@
-export PATH="/usr/bin:$PATH"
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -71,7 +70,7 @@ ZSH_THEME="robbyrussell"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+plugins=(git)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -110,14 +109,6 @@ alias wipe='cliphist wipe && notify-send "Clipboard emptied"'
 alias update='sudo pacman -Syu'
 alias update-all='yay -Syu'
 alias hypr-update='hyprpm update'
-[ -x /home/linuxbrew/.linuxbrew/bin/brew ] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-# OpenClaw Completion
-[ -f "$HOME/.openclaw/completions/openclaw.zsh" ] && source "$HOME/.openclaw/completions/openclaw.zsh"
-export PATH="$HOME/.local/bin:$PATH"
-
-# npm global bin (agent-browser CLI)
-export PATH="$HOME/.npm-global/bin:$PATH"
 
 # rustup toolchain ahead of pacman rust in /usr/bin
 export PATH="$HOME/.cargo/bin:$PATH"

@@ -3,7 +3,7 @@
 -- ▄▀  ██▀██ ██ ██ ▀████   ██   ██▄▄▄ 
 
 hl.on("hyprland.start", function()
-    hl.exec_cmd("ambxst")
+    -- hl.exec_cmd("ambxst")  -- disabled: systemd --user ambxst.service is the sole autostart mechanism (avoids double-start under uwsm)
 end)
 
 
@@ -17,8 +17,8 @@ hl.config({
         gaps_out = 4,
         border_size = 2,
         col = {
-            active_border = "rgb(adc6ff)",
-            inactive_border = "rgb(212227)",
+            active_border = "rgb(ffb3ae)",
+            inactive_border = "rgb(302625)",
         },
         layout = "dwindle",
     },
@@ -65,12 +65,13 @@ hl.bind("SUPER + TAB", hl.dsp.exec_cmd("ambxst run overview"))
 hl.bind("SUPER + ESCAPE", hl.dsp.exec_cmd("ambxst run powermenu"))
 hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("ambxst run config"))
 hl.bind("SUPER + L", hl.dsp.exec_cmd("loginctl lock-session"))
-hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd("ambxst run tools"))
+hl.bind("SUPER + S", hl.dsp.exec_cmd("ambxst run tools"))
 hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("ambxst run screenshot"))
 hl.bind("SUPER + SHIFT + R", hl.dsp.exec_cmd("ambxst run screenrecord"))
 hl.bind("SUPER + SHIFT + A", hl.dsp.exec_cmd("ambxst run lens"))
 hl.bind("SUPER + ALT + B", hl.dsp.exec_cmd("ambxst reload"))
 hl.bind("SUPER + CTRL + ALT + B", hl.dsp.exec_cmd("ambxst quit"))
+hl.bind("SUPER + C", hl.dsp.window.close())
 hl.bind("SUPER + 1", hl.dsp.focus({ workspace = "1" }))
 hl.bind("SUPER + 2", hl.dsp.focus({ workspace = "2" }))
 hl.bind("SUPER + 3", hl.dsp.focus({ workspace = "3" }))
@@ -120,8 +121,8 @@ hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ to
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("ambxst brightness +5"))
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("ambxst brightness -5"))
 hl.bind("XF86Calculator", hl.dsp.exec_cmd("notify-send \"Soon\""))
-hl.bind("SUPER + S", hl.dsp.workspace.toggle_special(""))
-hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special" }))
+hl.bind("SUPER + SHIFT + V", hl.dsp.workspace.toggle_special(""))
+hl.bind("SUPER + ALT + V", hl.dsp.window.move({ workspace = "special" }))
 hl.bind("switch:Lid Switch", hl.dsp.exec_cmd("loginctl lock-session"))
 hl.bind("switch:on:Lid Switch", hl.dsp.exec_cmd("axctl monitor set-dpms 0 0"))
 hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd("axctl monitor set-dpms 0 1"))
@@ -142,9 +143,9 @@ hl.bind("SUPER + SHIFT + l", hl.dsp.window.move({ direction = "r" }))
 hl.bind("SUPER + SHIFT + Up", hl.dsp.window.move({ direction = "u" }))
 hl.bind("SUPER + SHIFT + k", hl.dsp.window.move({ direction = "u" }))
 hl.bind("SUPER + SHIFT + Down", hl.dsp.window.move({ direction = "d" }))
-hl.bind("SUPER + SHIFT + Down", hl.dsp.window.move({ direction = "d" }))
+hl.bind("SUPER + SHIFT + Down", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movewindowto d")) end end)
 hl.bind("SUPER + SHIFT + j", hl.dsp.window.move({ direction = "d" }))
-hl.bind("SUPER + SHIFT + j", hl.dsp.window.move({ direction = "d" }))
+hl.bind("SUPER + SHIFT + j", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movewindowto d")) end end)
 hl.bind("SUPER + ALT + Right", hl.dsp.exec_cmd("resizeactive 50 0"))
 hl.bind("SUPER + ALT + l", hl.dsp.exec_cmd("resizeactive 50 0"))
 hl.bind("SUPER + ALT + Left", hl.dsp.exec_cmd("resizeactive -50 0"))

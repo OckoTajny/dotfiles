@@ -1,13 +1,13 @@
 [startup]
-exec-once = "ambxst"
+# exec-once = "ambxst"  # disabled: systemd --user ambxst.service is the sole autostart. axctl re-launching ambxst here spawned a duplicate shell.
 [appearance]
 [appearance.gaps]
 inner = 2
 outer = 4
 [appearance.border]
 width = 2
-active_color = "rgb(adc6ff)"
-inactive_color = "rgb(212227)"
+active_color = "rgb(ffb59e)"
+inactive_color = "rgb(2b201e)"
 rounding = 16
 [appearance.opacity]
 active = 1.0
@@ -123,8 +123,8 @@ flags = ""
 enabled = true
 
 [[keybinds]]
-modifiers = ["SUPER", "SHIFT"]
-key = "V"
+modifiers = ["SUPER"]
+key = "S"
 dispatcher = "exec"
 argument = "ambxst run tools"
 flags = ""
@@ -167,6 +167,14 @@ modifiers = ["SUPER", "CTRL", "ALT"]
 key = "B"
 dispatcher = "exec"
 argument = "ambxst quit"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER"]
+key = "C"
+dispatcher = "killactive"
+argument = ""
 flags = ""
 enabled = true
 
@@ -563,8 +571,8 @@ flags = ""
 enabled = true
 
 [[keybinds]]
-modifiers = ["SUPER"]
-key = "S"
+modifiers = ["SUPER", "SHIFT"]
+key = "V"
 dispatcher = "togglespecialworkspace"
 argument = ""
 flags = ""
@@ -572,7 +580,7 @@ enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER", "ALT"]
-key = "S"
+key = "V"
 dispatcher = "movetoworkspace"
 argument = "special"
 flags = ""
