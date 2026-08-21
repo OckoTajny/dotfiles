@@ -330,7 +330,7 @@
         "rows": 2,
         "scale": 0.18
     },
-    "panelFamily": "waffle",
+    "panelFamily": "ii",
     "policies": {
         "ai": 1,
         "weeb": 1
