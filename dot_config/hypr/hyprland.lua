@@ -45,17 +45,19 @@ loadfile(os.getenv("HOME") .. "/.local/share/ambxst/hyprland.lua")()
 hl.unbind("SUPER + T")
 hl.bind("SUPER + T", hl.dsp.exec_cmd("kitty"))
 
--- Workspace prev/next on the bottom-row pair, by keycode so it follows the
--- physical keys across layouts: code:52 = Z(us)/Y(cz), code:53 = X.
--- Ambxst's keysym binds break on cz, so drop them first.
+-- Workspace prev/next on the bottom-row pair. Hyprland resolves these keysyms
+-- to keycodes (input:resolve_binds_by_sym is false), so they follow the physical
+-- keys across layouts. Rebound here to override Ambxst's own Z/X binds.
 hl.unbind("SUPER + Z")
 hl.unbind("SUPER + X")
 hl.unbind("SUPER + SHIFT + Z")
 hl.unbind("SUPER + SHIFT + X")
-hl.bind("SUPER + code:52", hl.dsp.focus({ workspace = "-1" }))
-hl.bind("SUPER + code:53", hl.dsp.focus({ workspace = "+1" }))
--- SUPER + SHIFT + code:52 (accurate dictation) is bound in custom/keybinds.lua
--- and survives the unbind above, which only removes the keysym-Z binding.
+hl.bind("SUPER + Z", hl.dsp.focus({ workspace = "-1" }))
+hl.bind("SUPER + X", hl.dsp.focus({ workspace = "+1" }))
+-- The SUPER + SHIFT + Z unbind above also removes the accurate-dictation bind
+-- from custom/keybinds.lua (this file loads later, so the unbind wins). Put it
+-- back here, after the unbind.
+hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.local/bin/voice-to-text large-v3-turbo"))
 
 -- Claude Code with permission prompts disabled, in $HOME. Takes over Ambxst's
 -- settings window bind; settings are still reachable via `ambxst run config`.

@@ -25,8 +25,8 @@ hl.bind("SUPER + Return", hl.dsp.exec_cmd(
 -- SUPER + T is bound in hyprland.lua's OVERRIDES section (must beat Ambxst's tmux bind)
 hl.bind("CTRL + ALT + T", hl.dsp.exec_cmd("kitty")) -- Terminal (Ubuntu muscle memory)
 
-hl.bind("SHIFT + SUPER + code:201", hl.dsp.exec_cmd("discord"))        -- Copilot key -> Discord
-hl.bind("CTRL + SHIFT + SUPER + code:201", hl.dsp.exec_cmd("spotify")) -- Ctrl+Copilot -> Spotify
+hl.bind("SHIFT + SUPER + F23", hl.dsp.exec_cmd("discord"))        -- Copilot key (xkb FK23 = keycode 201) -> Discord
+hl.bind("CTRL + SHIFT + SUPER + F23", hl.dsp.exec_cmd("spotify")) -- Ctrl+Copilot -> Spotify
 
 ------------------------
 ---- Window actions ----
@@ -63,10 +63,13 @@ hl.bind("SHIFT + Print", hl.dsp.exec_cmd(
 --------------------
 ---- Workspaces ----
 --------------------
--- By keycode, not keysym: on the cz layout the digits need Shift, so keysym
--- binds for 1-0 never fire. code:10..19 are the physical number-row keys.
+-- Hyprland resolves keysym binds to keycodes (input:resolve_binds_by_sym is
+-- false), so these follow the physical number row on both layouts. The old
+-- "code:NN" spelling is NOT understood by the Lua provider: it registered
+-- binds with an empty key that could never fire.
+local digits = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 for i = 1, 10 do
-    local code = "code:" .. (i + 9)
+    local code = digits[i]
     local ws   = tostring(i)
     hl.bind("SUPER + " .. code, hl.dsp.focus({ workspace = ws }))
     hl.bind("SUPER + SHIFT + " .. code, hl.dsp.window.move({ workspace = ws }))
@@ -84,10 +87,10 @@ end
 ---- Utilities ----
 -------------------
 -- voice-to-text: toggle dictation (press to record, press again to transcribe+type).
--- code:29 = physical Y on us / Z on cz (top row) — layout-independent.
-hl.bind("SUPER + code:29", hl.dsp.exec_cmd(bin .. "voice-to-text"))
--- Accurate model (better Czech, slower) — code:52 = Z on us / Y on cz
-hl.bind("SUPER + SHIFT + code:52", hl.dsp.exec_cmd(bin .. "voice-to-text large-v3-turbo"))
+-- Y on us = Z on cz (top row); resolved by keycode, so either layout hits it.
+hl.bind("SUPER + Y", hl.dsp.exec_cmd(bin .. "voice-to-text"))
+-- Accurate model (better Czech, slower) — Z on us = Y on cz
+hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd(bin .. "voice-to-text large-v3-turbo"))
 
 hl.bind("SUPER + Space", hl.dsp.exec_cmd(bin .. "kb-toggle"))            -- Keyboard layout toggle (us <-> cz)
 hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd(bin .. "set-primary-monitor")) -- Pick the primary monitor (0,0)
