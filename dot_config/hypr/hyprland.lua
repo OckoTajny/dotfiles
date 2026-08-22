@@ -72,3 +72,11 @@ hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd(
 hl.unbind("SUPER + S")
 hl.bind("SUPER + S", hl.dsp.workspace.toggle_special({}))
 hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special", silent = true }))
+
+-- Scratchpad animation. Ambxst only configures windows/border/fade/workspaces,
+-- so specialWorkspaceIn/Out stay at speed 0 with no curve and the scratchpad
+-- snaps in instead of sliding. These are the values from the pre-Ambxst config.
+hl.curve("emphasizedDecel", { type = "bezier", points = { { 0.05, 0.7 }, { 0.1, 1 } } })
+hl.curve("emphasizedAccel", { type = "bezier", points = { { 0.3, 0 }, { 0.8, 0.15 } } })
+hl.animation({ leaf = "specialWorkspaceIn",  enabled = true, speed = 2.8, bezier = "emphasizedDecel", style = "slidevert" })
+hl.animation({ leaf = "specialWorkspaceOut", enabled = true, speed = 1.2, bezier = "emphasizedAccel", style = "slidevert" })
