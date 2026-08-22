@@ -3,7 +3,7 @@
 -- ▄▀  ██▀██ ██ ██ ▀████   ██   ██▄▄▄ 
 
 hl.on("hyprland.start", function()
-    -- hl.exec_cmd("ambxst")  -- disabled: systemd --user ambxst.service is the sole autostart mechanism (avoids double-start under uwsm)
+    hl.exec_cmd("ambxst")
 end)
 
 
@@ -17,8 +17,8 @@ hl.config({
         gaps_out = 4,
         border_size = 2,
         col = {
-            active_border = "rgb(ffb3ae)",
-            inactive_border = "rgb(302625)",
+            active_border = "rgb(ffb59e)",
+            inactive_border = "rgb(2b201e)",
         },
         layout = "dwindle",
     },
@@ -143,9 +143,9 @@ hl.bind("SUPER + SHIFT + l", hl.dsp.window.move({ direction = "r" }))
 hl.bind("SUPER + SHIFT + Up", hl.dsp.window.move({ direction = "u" }))
 hl.bind("SUPER + SHIFT + k", hl.dsp.window.move({ direction = "u" }))
 hl.bind("SUPER + SHIFT + Down", hl.dsp.window.move({ direction = "d" }))
-hl.bind("SUPER + SHIFT + Down", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movewindowto d")) end end)
+hl.bind("SUPER + SHIFT + Down", hl.dsp.window.move({ direction = "d" }))
 hl.bind("SUPER + SHIFT + j", hl.dsp.window.move({ direction = "d" }))
-hl.bind("SUPER + SHIFT + j", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movewindowto d")) end end)
+hl.bind("SUPER + SHIFT + j", hl.dsp.window.move({ direction = "d" }))
 hl.bind("SUPER + ALT + Right", hl.dsp.exec_cmd("resizeactive 50 0"))
 hl.bind("SUPER + ALT + l", hl.dsp.exec_cmd("resizeactive 50 0"))
 hl.bind("SUPER + ALT + Left", hl.dsp.exec_cmd("resizeactive -50 0"))
