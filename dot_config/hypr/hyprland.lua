@@ -65,3 +65,10 @@ hl.unbind("SUPER + SHIFT + C")
 hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd(
     "kitty --class claude-code --directory " .. os.getenv("HOME") ..
     " -e " .. os.getenv("HOME") .. "/.local/bin/claude --dangerously-skip-permissions"))
+
+-- Scratchpad on SUPER + S, as in the pre-Ambxst config. Ambxst binds S to its
+-- tools panel, which is already on SUPER + SHIFT + T (custom/keybinds.lua), so
+-- the scratchpad toggle was the one that got lost.
+hl.unbind("SUPER + S")
+hl.bind("SUPER + S", hl.dsp.workspace.toggle_special({}))
+hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special", silent = true }))
