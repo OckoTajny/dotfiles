@@ -1,13 +1,13 @@
 [startup]
-# exec-once = "ambxst"  # disabled: systemd --user ambxst.service is the sole autostart. axctl re-launching ambxst here spawned a duplicate shell.
+exec-once = "ambxst"
 [appearance]
 [appearance.gaps]
 inner = 2
 outer = 4
 [appearance.border]
 width = 2
-active_color = "rgb(ffb59e)"
-inactive_color = "rgb(2b201e)"
+active_color = "rgb(adc6ff)"
+inactive_color = "rgb(212227)"
 rounding = 16
 [appearance.opacity]
 active = 1.0
