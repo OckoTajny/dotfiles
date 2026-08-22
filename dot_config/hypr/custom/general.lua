@@ -24,7 +24,13 @@ hl.env("XCURSOR_SIZE", "24")
 -- Values carried over from the pre-Lua ambxst hyprland/general.conf.
 hl.config({
     input = {
-        kb_layout              = "cz,us",
+        -- us FIRST on purpose. Hyprland resolves every keysym bind to a keycode
+        -- through level 1 of the FIRST layout in this list, so with cz first the
+        -- digits (which sit on shift level in Czech) resolve to nothing and every
+        -- SUPER+1..0 bind silently dies — ambxst's own included. Typing stays
+        -- Czech: custom/execs.lua switches the ACTIVE layout to cz at startup,
+        -- and Super+Space (kb-toggle) flips between them.
+        kb_layout              = "us,cz",
         numlock_by_default     = true,
         repeat_delay           = 250,
         repeat_rate            = 35,
