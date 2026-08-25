@@ -2,6 +2,10 @@
     "apps": [
         "kitty",
         "brave-browser",
-        "jetbrains-idea"
+        "jetbrains-idea",
+        "zen",
+        "Spotify",
+        "WhatsApp Desktop",
+        "code-oss"
     ]
 }

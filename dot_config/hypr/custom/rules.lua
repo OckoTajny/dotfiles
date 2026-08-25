@@ -15,3 +15,13 @@ hl.window_rule({
     center = true,
     size   = "640 420",
 })
+
+-- Pinned windows in the Ambxst accent instead of the illogical-impulse blue
+hl.window_rule({ match = { pin = true }, border_color = "rgba(ffb59eAA) rgba(ffb59e77)" })
+
+-- Fix JetBrains IDE focus/rerendering problem (was in the old .conf tree;
+-- upstream's Lua rules.lua doesn't carry it)
+hl.window_rule({
+    match            = { class = "^jetbrains-.*$", float = true, title = "^$|^\\s$|^win\\d+$" },
+    no_initial_focus = true,
+})
