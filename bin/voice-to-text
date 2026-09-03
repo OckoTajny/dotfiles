@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# voice-to-text: toggle push-to-talk dictation for Wayland.
+# 1st run = start recording. 2nd run = stop, transcribe, type into focused window.
+# Audio: pw-record. Type: wtype.
+# Engine, picked at transcribe time:
+#   - whisper.cpp (Vulkan build) + ggml-large-v3.bin, if both present -> GPU, always large-v3 (best).
+#     Vulkan works on AMD (no ROCm needed) -- this is the path for ockotajny-desktop's 6700XT.
+#   - else whisper-ctranslate2 (CPU fallback, e.g. this laptop's Iris Xe has no usable accel path).
+#     Model: $1, else $VOICE_TO_TEXT_MODEL, else small.
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"  # Hyprland exec gives a minimal PATH
+DIR=/tmp/voice-to-text
+WAV="$DIR/rec.wav"
+TXT="$DIR/rec.txt"
+PIDF="$DIR/rec.pid"
+MODELF="$DIR/model"                                  # model picked at record start, read back at stop
+MODEL="${1:-${VOICE_TO_TEXT_MODEL:-small}}"          # CPU fallback only; small = fast+decent, large-v3-turbo = slower, much better Czech
+mkdir -p "$DIR"
+
+WHISPER_CPP_BIN="$(command -v whisper-cli || true)"
+WHISPER_CPP_MODEL="$HOME/.local/share/whisper-cpp/ggml-large-v3.bin"
+
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -t 1500 "voice-to-text" "$1" || true; }
+
+if [[ -f "$PIDF" ]] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
+  # --- stop + transcribe + type ---
+  kill "$(cat "$PIDF")" 2>/dev/null || true
+  rm -f "$PIDF"
+  [[ -s "$MODELF" ]] && MODEL="$(cat "$MODELF")"     # honour whichever bind started the recording
+  sleep 0.2
+  rm -f "$TXT"
+  if [[ -n "$WHISPER_CPP_BIN" && -f "$WHISPER_CPP_MODEL" ]]; then
+    notify "transcribing… (large-v3, GPU)"
+    "$WHISPER_CPP_BIN" -m "$WHISPER_CPP_MODEL" -f "$WAV" -l auto -ngl 99 \
+      -otxt -of "$DIR/rec" >"$DIR/err.log" 2>&1 || { notify "transcribe failed – see $DIR/err.log"; exit 1; }
+  else
+    notify "transcribing… ($MODEL)"
+    whisper-ctranslate2 "$WAV" --model "$MODEL" --output_dir "$DIR" \
+      --output_format txt --task transcribe >"$DIR/err.log" 2>&1 || { notify "transcribe failed – see $DIR/err.log"; exit 1; }
+  fi
+  text="$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$TXT" | paste -sd' ')"
+  if [[ -n "$text" ]]; then
+    wtype "$text"
+    notify "typed: ${text:0:40}"
+  else
+    notify "empty"
+  fi
+else
+  # --- start recording ---
+  notify "recording ($MODEL)… press bind again to stop"
+  printf '%s' "$MODEL" > "$MODELF"
+  pw-record --rate 16000 --channels 1 "$WAV" &
+  echo $! > "$PIDF"
+fi

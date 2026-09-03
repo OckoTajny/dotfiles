@@ -71,7 +71,7 @@ fi
 
 CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq
-  # keybind targets: whisper-flow dictation, OCR, media, session menu, screenshots
+  # keybind targets: voice-to-text dictation, OCR, media, session menu, screenshots
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
   tesseract tesseract-data-eng tesseract-data-ces bc
   # zsh (default shell – the tracked .zshrc uses oh-my-zsh)
@@ -291,7 +291,8 @@ run_doctor() {
 run_uninstall() {
   printf '%s%sdotswap uninstall%s\n\n' "$B" "$MAG" "$R"
   echo "This removes:"
-  echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,whisper-flow,kb-toggle,ambxst}"
+  echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,voice-to-text,whisper-cli,kb-toggle,ambxst}"
+  echo "  - ~/.local/share/whisper-cpp (GPU dictation model, if installed)"
   echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,caelestia}"
   echo "  - ~/.local/state/dotswap-profile"
   echo "  - /usr/local/bin/sudo-nopasswd-toggle + its sudoers rule (restores the"
@@ -313,7 +314,8 @@ run_uninstall() {
     y|yes) ;;
     *) echo "Aborted."; exit 0 ;;
   esac
-  rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/whisper-flow" "$BIN/kb-toggle" "$BIN/set-primary-monitor" "$BIN/sudo-setup" "$BIN/ambxst"
+  rm -f "$BIN/dotswap" "$BIN/dotswap-cycle" "$BIN/dotswap-postapply" "$BIN/voice-to-text" "$BIN/whisper-cli" "$BIN/kb-toggle" "$BIN/set-primary-monitor" "$BIN/sudo-setup" "$BIN/ambxst"
+  rm -rf "$HOME/.local/share/whisper-cpp"
   ok "removed dotswap tools from $BIN"
   # drop the root-owned half of the Super+P toggle, and make sure it doesn't
   # leave the machine sitting on passwordless sudo
@@ -605,10 +607,10 @@ for p in "${PROFILES[@]}"; do
   fi
 done
 
-# 4. install the dotswap tools + whisper-flow ---------------------------------
+# 4. install the dotswap tools + voice-to-text ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
-TOOLS=(dotswap dotswap-cycle dotswap-postapply whisper-flow kb-toggle set-primary-monitor ambxst)
+TOOLS=(dotswap dotswap-cycle dotswap-postapply voice-to-text kb-toggle set-primary-monitor ambxst)
 self_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")
 if [ -n "$self_dir" ] && [ -d "$self_dir/bin" ]; then
   install -Dm755 "$self_dir/bin/"* "$BIN/" && ok "tools installed → $BIN" || fail "install tools"
@@ -622,7 +624,8 @@ else
   [ "$okcount" -eq "${#TOOLS[@]}" ] && ok "tools installed → $BIN" \
     || fail "download dotswap tools ($okcount/${#TOOLS[@]})"
 fi
-# whisper-flow (Super+Y dictation) needs the transcription engine
+# voice-to-text (Super+Z dictation) needs the CPU transcription engine — it's
+# always installed as the fallback, even on boxes that get the GPU engine below.
 if need uv; then
   if uv tool list 2>/dev/null | grep -q whisper-ctranslate2; then
     ok "whisper-ctranslate2 present"
@@ -633,6 +636,68 @@ if need uv; then
   fi
 else
   warn "uv missing – skipping whisper-ctranslate2 (dictation engine)"
+fi
+
+# 4a. GPU dictation engine (whisper.cpp + Vulkan) ------------------------------
+# voice-to-text auto-prefers this over the CPU engine above when both
+# whisper-cli and the model are present (see dot_local/bin/voice-to-text).
+# Vulkan is vendor-agnostic — AMD/NVIDIA/Intel all get a real GPU backend
+# without ROCm or CUDA — so any box with a GPU gets this automatically.
+# Every step here is best-effort: failing just leaves the CPU engine in
+# place, nothing else on the machine depends on this succeeding.
+say "GPU dictation engine (whisper.cpp + Vulkan)"
+GPU_VENDOR=""
+if lspci -mm 2>/dev/null | grep -qi 'nvidia'; then GPU_VENDOR=nvidia
+elif lspci -mm 2>/dev/null | grep -qiE 'amd|ati'; then GPU_VENDOR=amd
+elif lspci -mm 2>/dev/null | grep -qi 'intel.*\(graphics\|display\)'; then GPU_VENDOR=intel
+fi
+
+if [ "$MODE" = doctor ]; then
+  if [ -x "$BIN/whisper-cli" ] && [ -f "$HOME/.local/share/whisper-cpp/ggml-large-v3.bin" ]; then
+    ok "whisper.cpp GPU engine present"
+  else
+    warn "whisper.cpp GPU engine not installed (CPU engine active)"
+  fi
+elif [ -z "$GPU_VENDOR" ]; then
+  ok "no GPU detected, CPU dictation engine only"
+elif [ -x "$BIN/whisper-cli" ] && [ -f "$HOME/.local/share/whisper-cpp/ggml-large-v3.bin" ]; then
+  ok "whisper.cpp GPU engine already installed"
+else
+  case "$GPU_VENDOR" in
+    nvidia) VK_PKGS=(nvidia-utils vulkan-icd-loader) ;;
+    amd)    VK_PKGS=(vulkan-radeon vulkan-icd-loader) ;;
+    intel)  VK_PKGS=(vulkan-intel vulkan-icd-loader) ;;
+  esac
+  for pkg in "${VK_PKGS[@]}"; do
+    have "$pkg" || sudo pacman -S --needed --noconfirm "$pkg" >/dev/null 2>&1
+  done
+  for pkg in cmake git vulkan-tools; do
+    have "$pkg" || sudo pacman -S --needed --noconfirm "$pkg" >/dev/null 2>&1
+  done
+
+  if need cmake && need git && need vulkaninfo \
+    && vulkaninfo --summary 2>/dev/null | grep -qiE 'deviceType\s*=\s*PHYSICAL_DEVICE_TYPE_(DISCRETE|INTEGRATED)_GPU'; then
+    BUILD_DIR=$(mktemp -d)
+    if git clone --quiet --depth 1 https://github.com/ggml-org/whisper.cpp "$BUILD_DIR" >/dev/null 2>&1 \
+      && spin "building whisper.cpp (Vulkan, $GPU_VENDOR)…" \
+           bash -c "cmake -S '$BUILD_DIR' -B '$BUILD_DIR/build' -DGGML_VULKAN=ON -DCMAKE_BUILD_TYPE=Release \
+             && cmake --build '$BUILD_DIR/build' -j$(nproc) --target whisper-cli"; then
+      install -Dm755 "$BUILD_DIR/build/bin/whisper-cli" "$BIN/whisper-cli"
+      mkdir -p "$HOME/.local/share/whisper-cpp"
+      if spin "downloading ggml-large-v3.bin (~3.1GB)…" curl -fsSL -o "$HOME/.local/share/whisper-cpp/ggml-large-v3.bin" \
+        https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin; then
+        ok "whisper.cpp GPU engine installed ($GPU_VENDOR, Vulkan)"
+      else
+        rm -f "$HOME/.local/share/whisper-cpp/ggml-large-v3.bin"
+        fail "download ggml-large-v3.bin (whisper.cpp built OK, CPU engine still active until this succeeds)"
+      fi
+    else
+      fail "build whisper.cpp with Vulkan (log: $SPIN_LOG) — CPU dictation engine still works"
+    fi
+    rm -rf "$BUILD_DIR"
+  else
+    warn "no working Vulkan device found (vulkaninfo) — skipping GPU engine, CPU engine still works"
+  fi
 fi
 
 # 4b. sudo toggle helper (Super+P) --------------------------------------------
