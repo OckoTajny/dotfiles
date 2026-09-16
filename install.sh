@@ -10,8 +10,8 @@ REPO="https://github.com/OckoTajny/dotfiles.git"
 SRC_BASE="$HOME/.local/share"
 BIN="$HOME/.local/bin"
 
-PROFILES=(ambxst illogical win11 caelestia)
-declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [caelestia]=caelestia )
+PROFILES=(ambxst illogical win11 caelestia 43pr)
+declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [caelestia]=caelestia [43pr]=43pr )
 DEFAULT_PROFILE=ambxst
 
 # `[ -r /dev/tty ]` is a false-positive test here: it passes even with no
@@ -79,6 +79,10 @@ CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   # neovim: the tracked ~/.config/nvim is LazyVim; it self-bootstraps on first
   # launch. node/npm let Mason install the LSP servers (pyright, ts, json, …).
   neovim nodejs npm
+  # lazygit – git TUI
+  lazygit
+  # waybar & rofi (used by 43pr profile)
+  waybar rofi
   # checkupdates – used by hypr custom update-check.sh startup script
   pacman-contrib)
 # Required: the caelestia shell stack (the rices need it).
@@ -293,7 +297,7 @@ run_uninstall() {
   echo "This removes:"
   echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,voice-to-text,whisper-cli,kb-toggle,ambxst}"
   echo "  - ~/.local/share/whisper-cpp (GPU dictation model, if installed)"
-  echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,caelestia}"
+  echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,caelestia,43pr}"
   echo "  - ~/.local/state/dotswap-profile"
   echo "  - /usr/local/bin/sudo-nopasswd-toggle + its sudoers rule (restores the"
   echo "    sudo password prompt if the toggle left it off)"

@@ -26,6 +26,10 @@ kill_caelestia() {
   pkill -f "quickshell -c caelestia" 2>/dev/null || true
 }
 
+kill_waybar() {
+  pkill -x waybar 2>/dev/null || true
+}
+
 start_ambxst() {
   pgrep -f "ambxst/shell.qml" >/dev/null && return
   command -v ambxst >/dev/null && setsid ambxst >/dev/null 2>&1 < /dev/null &
@@ -45,15 +49,21 @@ start_caelestia() {
   fi
 }
 
-# Caelestia ships a Lua Hyprland config (hyprland.lua). Newer Hyprland prefers
+start_waybar() {
+  pgrep -x waybar >/dev/null && return
+  command -v waybar >/dev/null && setsid waybar >/dev/null 2>&1 < /dev/null &
+}
+
+# Caelestia and 43pr ship a Lua Hyprland config (hyprland.lua). Newer Hyprland prefers
 # hyprland.lua over hyprland.conf, so if it lingers after switching to a .conf
-# rice the wrong (caelestia) keybinds load. Drop it for the .conf profiles.
+# rice the wrong keybinds load. Drop it for the .conf profiles.
 drop_caelestia_lua() { rm -f "$HOME/.config/hypr/hyprland.lua"; }
 
 case "$profile" in
   ambxst)
     kill_quickshell_ii
     kill_caelestia
+    kill_waybar
     kill_mako
     drop_caelestia_lua
     start_ambxst
@@ -61,6 +71,7 @@ case "$profile" in
   illogical|win11)
     kill_ambxst
     kill_caelestia
+    kill_waybar
     kill_mako
     drop_caelestia_lua
     start_quickshell_ii
@@ -68,8 +79,16 @@ case "$profile" in
   caelestia)
     kill_ambxst
     kill_quickshell_ii
+    kill_waybar
     kill_mako
     start_caelestia
+    ;;
+  43pr)
+    kill_ambxst
+    kill_quickshell_ii
+    kill_caelestia
+    kill_mako
+    start_waybar
     ;;
   *)
     echo "Unknown profile: $profile" >&2

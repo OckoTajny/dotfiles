@@ -1,4 +1,4 @@
-# dotswap – one Hyprland machine, four rices
+# dotswap – one Hyprland machine, five rices
 
 `dotswap` swaps whole desktop "profiles" (rices) in place using **chezmoi** with a
 separate source tree per profile. One keypress cycles the entire shell, bar,
@@ -10,6 +10,7 @@ keybinds, terminal theme and Hyprland config.
 | `illogical` | illogical-impulse (`qs -c ii`) | `main`  |
 | `win11`     | illogical-impulse, Win11/waffle layout | `win11` |
 | `caelestia` | Caelestia (`qs -c caelestia`) | `caelestia` |
+| `43pr`      | Waybar + Rofi + Quickshell (43PR monochrome) | `43pr` |
 
 Each profile is a branch of this repo; its files live under `dot_config/…`,
 `dot_local/…` (chezmoi layout).
@@ -66,7 +67,7 @@ switching, so live tweaks are never lost.
 | `Ctrl+Shift+Super+Left`       | cycle to previous profile    |
 | `Ctrl+Super+P`                | jump straight to `win11`     |
 
-Cycle order: `ambxst → illogical → win11 → caelestia → …`
+Cycle order: `ambxst → illogical → win11 → caelestia → 43pr → …`
 
 ## How it works
 
