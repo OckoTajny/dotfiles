@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Restore the favourite workspace layout:
+#   DP-2 (main)      ws 1  -> IntelliJ IDEA
+#   DP-1 (secondary) ws 2  -> Spotify
+#                    ws 3  -> Discord
+#   special          Zen browser (Super+S scratchpad)
+#
+# Apps that are already open get moved; anything missing is launched and then
+# moved once its window shows up. Everything runs silently, so the layout is
+# built up without the focus jumping around, and we land on ws 1 at the end.
+
+set -u
+
+MAIN=DP-2
+SIDE=DP-1
+
+# Pin the workspaces to the right monitors first, otherwise a workspace that
+# happens to live on the wrong screen would drag the window along with it.
+pin() { hyprctl dispatch moveworkspacetomonitor "$1" "$2" >/dev/null; }
+
+# All window addresses of a given class, one per line.
+addrs() {
+	hyprctl clients -j | jq -r --arg c "$1" '.[] | select(.class == $c) | .address'
+}
+
+place() {
+	local class=$1 ws=$2 cmd=$3 found
+	found=$(addrs "$class")
+
+	if [ -z "$found" ]; then
+		setsid -f $cmd >/dev/null 2>&1
+		# Give it a while to map a window; IDEA in particular is slow.
+		for _ in $(seq 60); do
+			sleep 0.5
+			found=$(addrs "$class")
+			[ -n "$found" ] && break
+		done
+		[ -z "$found" ] && { notify-send "Fav layout" "$class se nespustil"; return; }
+	fi
+
+	local a
+	for a in $found; do
+		hyprctl dispatch movetoworkspacesilent "$ws,address:$a" >/dev/null
+	done
+}
+
+pin 1 "$MAIN"
+pin 2 "$SIDE"
+pin 3 "$SIDE"
+
+place Spotify        2       spotify
+place discord        3       discord
+place zen            special zen-browser
+place jetbrains-idea 1       "$HOME/.local/share/JetBrains/Toolbox/scripts/idea"
+
+hyprctl dispatch focusmonitor "$MAIN" >/dev/null
+hyprctl dispatch workspace 1 >/dev/null

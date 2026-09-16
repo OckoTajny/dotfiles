@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Single-instance guard for Ambxst.
+#
+# Ambxst regenerates ~/.local/share/ambxst/hyprland.conf (with `exec-once = ambxst`)
+# on every start, so Hyprland's exec-once and ambxst.service both launch the shell.
+# Two instances each reserve their own exclusive top zone -> 80px instead of 40px,
+# which shows up as a gap between the bar and windows.
+#
+# Bare invocation is routed through systemd, which is idempotent, so whichever
+# launcher fires first wins and the other becomes a no-op. Subcommands and the
+# service's own ExecStart (absolute path /usr/local/bin/ambxst) bypass this.
+
+REAL=/usr/local/bin/ambxst
+
+if [ $# -gt 0 ] || [ -n "$AMBXST_NO_GUARD" ]; then
+	exec "$REAL" "$@"
+fi
+
+if systemctl --user start ambxst.service 2>/dev/null; then
+	exit 0
+fi
+
+exec "$REAL"

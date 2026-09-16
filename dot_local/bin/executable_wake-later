@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# wake-later — power the machine down now and have the RTC switch it back on
+# after a given delay, with SSH up as soon as it boots.
+#
+#   wake-later 12h            hibernate now, wake in 12 hours   (default, safest)
+#   wake-later 90m --off      full power off (S5), wake in 90 minutes
+#   wake-later 5m --dry       set nothing, just show what would happen
+#   wake-later --check        report whether a wake alarm is already armed
+#
+# Why hibernate is the default: waking from S4 is handled by the kernel's RTC
+# alarm and works nearly everywhere. Waking from a real power-off (S5) also
+# needs the *firmware* to honour the alarm, and plenty of boards ship with
+# "Wake on RTC" / "RTC Alarm Power On" disabled in BIOS. If that's off, --off
+# means the machine stays dark until someone presses the button — which is why
+# it isn't the default and why --off makes you confirm.
+#
+# Power draw hibernating is the same as off; the difference is only that the
+# session comes back exactly as you left it.
+set -uo pipefail
+
+ALARM=/sys/class/rtc/rtc0/wakealarm
+MODE=disk           # rtcwake -m: disk = hibernate (S4), off = power off (S5)
+DRY=0 CHECK=0 SPEC=""
+
+die()  { printf '\033[38;5;203merror:\033[0m %s\n' "$1" >&2; exit 1; }
+info() { printf '\033[38;5;75m→\033[0m %s\n' "$1"; }
+ok()   { printf '\033[38;5;114m✓\033[0m %s\n' "$1"; }
+warn() { printf '\033[38;5;221m⚠\033[0m %s\n' "$1"; }
+
+for a in "$@"; do
+  case "$a" in
+    --off)        MODE=off ;;
+    --hibernate)  MODE=disk ;;
+    --suspend)    MODE=mem ;;
+    --dry|-n)     DRY=1 ;;
+    --check|-c)   CHECK=1 ;;
+    -h|--help)    sed -n '2,20p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    -*)           die "unknown flag: $a" ;;
+    *)            SPEC=$a ;;
+  esac
+done
+
+# --- report an already-armed alarm and stop -----------------------------------
+if [ "$CHECK" -eq 1 ]; then
+  raw=$(cat "$ALARM" 2>/dev/null)
+  if [ -z "$raw" ] || [ "$raw" = 0 ]; then
+    info "no wake alarm armed"
+  else
+    ok "wake alarm armed for $(date -d "@$raw" '+%a %Y-%m-%d %H:%M:%S %Z') (in $(( (raw - $(date +%s)) / 60 )) min)"
+  fi
+  exit 0
+fi
+
+# --- parse the delay ----------------------------------------------------------
+[ -n "$SPEC" ] || die "give a delay, e.g. 12h / 90m / 3600 (see --help)"
+case "$SPEC" in
+  *h) SECS=$(( ${SPEC%h} * 3600 )) ;;
+  *m) SECS=$(( ${SPEC%m} * 60 )) ;;
+  *s) SECS=${SPEC%s} ;;
+  *[!0-9]*) die "can't read delay '$SPEC' — use 12h, 90m, 30s or plain seconds" ;;
+  *) SECS=$SPEC ;;
+esac
+[ "$SECS" -ge 60 ] 2>/dev/null || die "delay must be at least 60s (got '$SPEC')"
+# The RTC counts a month at most; anything longer silently wouldn't fire.
+[ "$SECS" -le 2592000 ] || die "delay longer than 30 days — the RTC can't hold it"
+
+WAKE_AT=$(date -d "+${SECS} seconds" '+%a %Y-%m-%d %H:%M:%S %Z')
+
+# --- preflight: the point is to come back reachable ---------------------------
+systemctl is-enabled sshd  >/dev/null 2>&1 && ok "sshd starts at boot" \
+  || warn "sshd is NOT enabled — you won't be able to log in after the wake (systemctl enable sshd)"
+systemctl is-enabled tailscaled >/dev/null 2>&1 && ok "tailscaled starts at boot" \
+  || warn "tailscaled is NOT enabled — only the LAN address will work"
+
+if [ "$MODE" = disk ]; then
+  swapon --show=SIZE --noheadings --bytes 2>/dev/null | awk '{s+=$1} END {exit !(s>0)}' \
+    || die "hibernate needs swap and there is none — use --off or --suspend"
+  grep -q 'resume=' /proc/cmdline \
+    || warn "no resume= on the kernel cmdline — hibernation may not come back cleanly"
+fi
+
+case "$MODE" in
+  disk) what="hibernate (S4)" ;;
+  off)  what="power off (S5)" ;;
+  mem)  what="suspend to RAM (S3)" ;;
+esac
+
+info "will $what now and wake at: ${WAKE_AT}"
+
+if [ "$DRY" -eq 1 ]; then
+  warn "--dry: nothing armed, nothing shut down"
+  exit 0
+fi
+
+# --- S5 needs firmware cooperation, so make it a deliberate choice ------------
+if [ "$MODE" = off ]; then
+  cat <<EOF
+
+  Waking from a full power-off only works if this board's BIOS has
+  "Wake on RTC" / "RTC Alarm Power On" enabled. If it doesn't, the machine
+  will stay off until someone presses the power button in person.
+
+  Safer: rerun without --off to hibernate instead (same power draw, wake is
+  handled by the kernel). Or test --off once with a short delay while you're
+  sitting next to it.
+
+EOF
+  printf 'Continue with a full power-off? [y/N] '
+  read -r ans </dev/tty || ans=n
+  case "${ans,,}" in y|yes) ;; *) info "aborted"; exit 0 ;; esac
+fi
+
+# rtcwake arms the alarm and triggers the transition in one go. Verify the
+# alarm actually landed first — a silently-unset alarm is the failure mode that
+# leaves the machine dark.
+sudo sh -c "echo 0 > '$ALARM'" 2>/dev/null
+sudo rtcwake -m no -s "$SECS" >/dev/null 2>&1 || die "could not arm the RTC alarm"
+
+armed=$(sudo cat "$ALARM" 2>/dev/null)
+[ -n "$armed" ] && [ "$armed" != 0 ] || die "RTC alarm did not stick — refusing to shut down"
+ok "alarm armed for $(date -d "@$armed" '+%a %Y-%m-%d %H:%M:%S %Z')"
+
+info "going down now…"
+sleep 2
+case "$MODE" in
+  disk) sudo systemctl hibernate ;;
+  mem)  sudo systemctl suspend ;;
+  off)  sudo systemctl poweroff ;;
+esac
