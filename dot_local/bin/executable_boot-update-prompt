@@ -24,7 +24,25 @@ kitty --class update-prompt --title "System update" -e bash -c '
   read -rp "  [y/N] " ans
   if [[ $ans == [yY]* ]]; then
     notify-send "System update" "⏳ Spouštím yay -Syu…"
-    if yay -Syu --noconfirm; then
+    upd_ok=0
+    # First pass non-interactive. The --answer* flags stop yay stalling on its
+    # own cleanBuild/diff/edit questions. pacman conflict + provider questions
+    # (e.g. "noctalia-qs and quickshell are in conflict. Remove quickshell?")
+    # cannot be answered by --noconfirm at all — it always takes the default No
+    # and the whole transaction aborts. Those fall through to the retry below.
+    if yay -Syu --noconfirm \
+         --answerclean None --answerdiff None --answeredit None --answerupgrade None; then
+      upd_ok=1
+    else
+      echo
+      echo "Neinteraktivní průchod selhal — typicky konflikt balíčků nebo volba providera."
+      echo "Zkouším znovu interaktivně, odpověz na dotazy pacmanu/yay."
+      echo "(Ctrl+C = přeskočit update.)"
+      echo
+      notify-send -u critical "System update" "⚠️ Update čeká na odpověď — mrkni do terminálu"
+      if yay -Syu; then upd_ok=1; fi
+    fi
+    if (( upd_ok )); then
       notify-send "System update" "✅ Všechny balíčky aktualizovány"
     else
       notify-send -u critical "System update" "❌ Update selhal — mrkni do terminálu"

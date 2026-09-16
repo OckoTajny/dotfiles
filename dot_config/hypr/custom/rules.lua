@@ -25,3 +25,13 @@ hl.window_rule({
     match            = { class = "^jetbrains-.*$", float = true, title = "^$|^\\s$|^win\\d+$" },
     no_initial_focus = true,
 })
+
+-- Games (CS2 native = class "cs2", Proton = steam_app_*): real fullscreen so
+-- the Ambxst bar (layer "top") stays underneath instead of overlapping the game
+hl.window_rule({
+    match            = { class = "^(cs2|steam_app_\\d+)$", title = "^(.+)$" },
+    fullscreen_state = 2,
+    sync_fullscreen  = true,
+    decorate         = false,
+})
+
