@@ -23,6 +23,11 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("awww-daemon")
     hl.exec_cmd("qs -d -c volume-osd")
     hl.exec_cmd("~/.local/bin/boot-update-prompt")
+
+    -- Start on the Czech layout. kb_layout lists us first so that keysym
+    -- binds resolve to the right keycodes (digits sit on the shift level in
+    -- cz); this flips the ACTIVE layout to cz once the compositor is up.
+    hl.exec_cmd("hyprctl switchxkblayout all 1")
 end)
 
 ---- ENVIRONMENT VARIABLES ----
@@ -38,6 +43,7 @@ hl.config({
         kb_layout = "us,cz",
         follow_mouse = 1,
         sensitivity = 0.5,
+        accel_profile = "flat",   -- no mouse acceleration
         touchpad = {
             natural_scroll = false,
             tap_to_click = true,
@@ -102,7 +108,12 @@ hl.config({
 
 ---- SPLIT-OUT FILES ----
 
-require("monitors")
+-- monitors.lua is machine-specific (written by ~/.local/bin/set-primary-monitor,
+-- Super+Shift+M) and not tracked; fall back to the generic "any monitor,
+-- preferred mode" file until it exists.
+if not pcall(require, "monitors") then
+    require("create_monitors")
+end
 require("keybinds")
 require("rules")
 
