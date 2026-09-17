@@ -8,7 +8,7 @@ PROFILE_FILE="$HOME/.local/state/dotswap-profile"
 SRC_BASE="$HOME/.local/share"
 
 TRACKED_CONFIG_DIRS=(
-  alacritty ambxst btop caelestia cava fastfetch fish foot fuzzel hypr
+  alacritty ambxst btop cava fastfetch fish foot fuzzel hypr
   illogical-impulse kde-material-you-colors kitty lazygit mako matugen
   nvim quickshell rofi waybar wlogout
 )

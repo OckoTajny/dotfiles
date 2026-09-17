@@ -1,4 +1,4 @@
-# dotswap – one Hyprland machine, five rices
+# dotswap – one Hyprland machine, four rices
 
 `dotswap` swaps whole desktop "profiles" (rices) in place using **chezmoi** with a
 separate source tree per profile. One keypress cycles the entire shell, bar,
@@ -9,8 +9,7 @@ keybinds, terminal theme and Hyprland config.
 | `ambxst`    | Ambxst (quickshell + axctl)| `ambxst`    |
 | `illogical` | illogical-impulse (`qs -c ii`) | `main`  |
 | `win11`     | illogical-impulse, Win11/waffle layout | `win11` |
-| `caelestia` | Caelestia (`qs -c caelestia`) | `caelestia` |
-| `43pr`      | Waybar + Rofi + Quickshell (43PR monochrome) | `43pr` |
+| `43pr`      | Waybar + Rofi + Quickshell ([43PR/dotfiles](https://github.com/43PR/dotfiles) monochrome) | `43pr` |
 
 Each profile is a branch of this repo; its files live under `dot_config/…`,
 `dot_local/…` (chezmoi layout).
@@ -18,13 +17,16 @@ Each profile is a branch of this repo; its files live under `dot_config/…`,
 ## Quickstart
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh | bash
+curl -fsSL solta.tech/install | bash
 ```
 
-This installs base tools (`git`, `chezmoi`, `yay`), a core dependency set, the
-Caelestia shell stack, clones all four profile branches into
-`~/.local/share/chezmoi-<profile>/`, drops the `dotswap` tools into
-`~/.local/bin/`, and applies the `ambxst` profile.
+(`solta.tech/install` redirects to
+`raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh`.)
+
+This installs base tools (`git`, `chezmoi`, `yay`), a core dependency set
+(incl. quickshell, waybar, rofi, awww … for every rice), clones all four
+profile branches into `~/.local/share/chezmoi-<profile>/`, drops the `dotswap`
+tools into `~/.local/bin/`, and applies the `ambxst` profile.
 
 ### Updating
 
@@ -33,17 +35,18 @@ what's **new** – updated packages and newly added tools – while leaving your
 `~/.config` (keybinds, tweaks) completely untouched:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh | bash -s -- --update
+curl -fsSL solta.tech/install | bash -s -- --update
 ```
 
 Without `--update` it runs a fresh install and writes the configs; with it,
 configs are never re-applied.
 
-> The three desktop shells own their full dependency trees. For a complete
-> install of any one rice, also run its upstream installer:
+> The desktop shells own their full dependency trees. For a complete install
+> of any one rice, also run its upstream installer:
 > - **Ambxst** – https://github.com/Axenide/Ambxst
 > - **illogical-impulse** – https://github.com/end-4/dots-hyprland
-> - **Caelestia** – https://github.com/caelestia-dots/caelestia (`caelestia install`)
+> - **43PR** – https://github.com/43PR/dotfiles (`./install.sh`; the `43pr`
+>   branch here is that setup with my keybinds/tools mapped onto it)
 
 ## Usage
 
@@ -67,7 +70,7 @@ switching, so live tweaks are never lost.
 | `Ctrl+Shift+Super+Left`       | cycle to previous profile    |
 | `Ctrl+Super+P`                | jump straight to `win11`     |
 
-Cycle order: `ambxst → illogical → win11 → caelestia → 43pr → …`
+Cycle order: `ambxst → illogical → win11 → 43pr → …`
 
 ## How it works
 
@@ -77,6 +80,9 @@ Cycle order: `ambxst → illogical → win11 → caelestia → 43pr → …`
   then `dotswap-postapply`.
 - `bin/dotswap-postapply <profile>` – stops the old shell, starts the new one,
   reloads Hyprland. Shell starts are `pgrep`-guarded against duplicates.
+  `ambxst`/`43pr` are Lua Hyprland configs, `illogical`/`win11` are `.conf`;
+  Hyprland picks the format at startup, so a switch across formats finishes
+  on the next login (postapply notifies you).
 
 Profile name is stored in `~/.local/state/dotswap-profile`.
 

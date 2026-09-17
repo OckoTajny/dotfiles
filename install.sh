@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # dotswap installer – clone the rice profiles + tools onto a fresh machine.
-# Usage: curl -fsSL https://raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh | bash
+# Usage: curl -fsSL solta.tech/install | bash
+#   (solta.tech/install redirects to raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh)
 #
 # Resilient by design: a failing package or step is reported and skipped, the
 # run keeps going, and a summary of what failed is printed at the end.
@@ -10,8 +11,8 @@ REPO="https://github.com/OckoTajny/dotfiles.git"
 SRC_BASE="$HOME/.local/share"
 BIN="$HOME/.local/bin"
 
-PROFILES=(ambxst illogical win11 caelestia 43pr)
-declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [caelestia]=caelestia [43pr]=43pr )
+PROFILES=(ambxst illogical win11 43pr)
+declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [43pr]=43pr )
 DEFAULT_PROFILE=ambxst
 
 # `[ -r /dev/tty ]` is a false-positive test here: it passes even with no
@@ -81,12 +82,19 @@ CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   neovim nodejs npm
   # lazygit – git TUI
   lazygit
-  # waybar & rofi (used by 43pr profile)
-  waybar rofi
+  # 43pr profile (43PR/dotfiles): waybar + rofi + wlogout + hyprlock, awww
+  # wallpaper daemon (hyprquickpaper picker), gammastep (waybar blue-light
+  # toggle), nvtop (waybar GPU module), starship prompt, papirus icons,
+  # nerd/awesome fonts for waybar glyphs, dunst notifications, polkit agent,
+  # nm-applet tray, gpu-screen-recorder (Super+Shift+R), thunar/xed fallbacks
+  waybar rofi awww gammastep nvtop cava starship eza papirus-icon-theme
+  otf-font-awesome ttf-jetbrains-mono-nerd dunst polkit-kde-agent
+  network-manager-applet gpu-screen-recorder imagemagick thunar xed
   # checkupdates – used by hypr custom update-check.sh startup script
   pacman-contrib)
-# Required: the caelestia shell stack (the rices need it).
-AUR_PKGS=(quickshell-git caelestia-cli caelestia-shell)
+# Required: quickshell (ambxst / illogical-impulse / 43pr widgets all run on it)
+# + papirus-folders (43pr sets the folder icons to white).
+AUR_PKGS=(quickshell-git papirus-folders)
 # Optional desktop apps the keybinds launch. The user picks which to install
 # (all / a subset / none). "pkg|label" – label shown in the menu.
 OPTIONAL_APPS=(
@@ -297,7 +305,7 @@ run_uninstall() {
   echo "This removes:"
   echo "  - ~/.local/bin/{dotswap,dotswap-cycle,dotswap-postapply,voice-to-text,whisper-cli,kb-toggle,ambxst}"
   echo "  - ~/.local/share/whisper-cpp (GPU dictation model, if installed)"
-  echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,caelestia,43pr}"
+  echo "  - ~/.local/share/chezmoi-{ambxst,illogical,win11,43pr}"
   echo "  - ~/.local/state/dotswap-profile"
   echo "  - /usr/local/bin/sudo-nopasswd-toggle + its sudoers rule (restores the"
   echo "    sudo password prompt if the toggle left it off)"
@@ -423,7 +431,7 @@ for p in "${CORE_PKGS[@]}"; do
     || { printf '   %s✗%s %s\n' "$RED" "$R" "$p"; FAILS+=("pkg: $p"); }
 done
 if need yay; then
-  printf '   %sAUR (caelestia shell stack)…%s\n' "$DIM" "$R"
+  printf '   %sAUR (quickshell, papirus-folders)…%s\n' "$DIM" "$R"
   for p in "${AUR_PKGS[@]}"; do
     if have "$p"; then printf '   %s✓%s %s (installed)\n' "$GRN" "$R" "$p"; continue; fi
     spin "building $p (AUR)…" yay -S --needed --noconfirm "$p" \
@@ -431,7 +439,16 @@ if need yay; then
       || { printf '   %s⚠%s  %s (AUR, log: %s)\n' "$YEL" "$R" "$p" "$SPIN_LOG"; tail -n5 "$SPIN_LOG" | sed 's/^/       /'; FAILS+=("aur: $p ($SPIN_LOG)"); }
   done
 else
-  warn "no yay – skipping caelestia shell stack (install quickshell-git, caelestia-cli, caelestia-shell later)"
+  warn "no yay – skipping AUR packages (install quickshell-git, papirus-folders later)"
+fi
+
+# 43pr rice (github.com/43PR/dotfiles): its GTK theme expects white Papirus
+# folders – same step upstream's install.sh does. Idempotent, root needed
+# because it rewrites /usr/share/icons/Papirus.
+if [ "$MODE" != doctor ] && need papirus-folders; then
+  sudo papirus-folders -C white >/dev/null 2>&1 \
+    && ok "papirus folders → white (43pr)" \
+    || warn "papirus-folders -C white failed (43pr folder icons stay default)"
 fi
 
 # Ambxst shell (ambxst rice's bar/dock) – not a package, has its own installer.
