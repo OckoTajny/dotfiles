@@ -108,11 +108,12 @@ hl.config({
 
 ---- SPLIT-OUT FILES ----
 
--- monitors.lua is machine-specific (written by ~/.local/bin/set-primary-monitor,
--- Super+Shift+M) and not tracked; fall back to the generic "any monitor,
--- preferred mode" file until it exists.
+-- monitors.lua is machine-specific: chezmoi creates it once from the source's
+-- create_monitors.lua (generic "any monitor, preferred mode") and
+-- ~/.local/bin/set-primary-monitor (Super+Shift+M) rewrites it afterwards.
 if not pcall(require, "monitors") then
-    require("create_monitors")
+    print("monitors.lua missing – run set-primary-monitor; using preferred mode on every output")
+    hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "1" })
 end
 require("keybinds")
 require("rules")
