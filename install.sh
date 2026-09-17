@@ -90,11 +90,14 @@ CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
   waybar rofi awww gammastep nvtop cava starship eza papirus-icon-theme
   otf-font-awesome ttf-jetbrains-mono-nerd dunst polkit-kde-agent
   network-manager-applet gpu-screen-recorder imagemagick thunar xed
+  # quickshell: every rice's widgets run on it (ambxst shell, illogical-impulse
+  # `qs -c ii`, 43pr volume OSD + hyprquickpaper). Repo package; on CachyOS the
+  # preinstalled noctalia-qs already *provides* it (have() honours provides).
+  quickshell
   # checkupdates – used by hypr custom update-check.sh startup script
   pacman-contrib)
-# Required: quickshell (ambxst / illogical-impulse / 43pr widgets all run on it)
-# + papirus-folders (43pr sets the folder icons to white).
-AUR_PKGS=(quickshell-git papirus-folders)
+# papirus-folders: 43pr sets the folder icons to white.
+AUR_PKGS=(papirus-folders)
 # Optional desktop apps the keybinds launch. The user picks which to install
 # (all / a subset / none). "pkg|label" – label shown in the menu.
 OPTIONAL_APPS=(
@@ -154,7 +157,10 @@ warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
 err()  { printf '   %s✗%s %s\n' "$RED" "$R" "$1"; }
 fail() { err "$1"; FAILS+=("$1"); }            # record + keep going
 need() { command -v "$1" >/dev/null 2>&1; }
-have() { pacman -Qq "$1" >/dev/null 2>&1; }    # already installed?
+# already installed? `-T` (deptest) also accepts a provider – e.g. CachyOS's
+# noctalia-qs satisfies quickshell – where `-Qq` would say "missing" and
+# `pacman -S` would then try to swap the provider out.
+have() { pacman -T "$1" >/dev/null 2>&1; }
 
 # Runs a long, otherwise-silent command with a spinner so it never looks
 # frozen (AUR builds and full-system upgrades can take minutes with zero
@@ -193,29 +199,39 @@ run_doctor() {
     "${XDG_CURRENT_DESKTOP:-?}" "${DESKTOP_SESSION:-?}"
 
   section "Hyprland config provider"
-  # Hyprland 0.55+ on CachyOS picks a config provider at startup: if
-  # ~/.config/hypr/hyprland.lua exists (CachyOS's cachyos-hypr-noctalia
-  # skeleton ships one), it's used INSTEAD of hyprland.conf and our whole
-  # .conf tree (this repo's target) is silently ignored – no error, no
-  # keybind. Real-world finding: install looked 100% successful, rice just
-  # never worked. `hyprctl keyword` also doesn't work under the lua
-  # provider ("keyword can't work with non-legacy parsers") – only
-  # `hyprctl eval` does runtime changes there.
+  # Hyprland picks a config provider at startup: "lua" when
+  # ~/.config/hypr/hyprland.lua exists, else "hyprlang" (hyprland.conf).
+  # ambxst and 43pr are Lua profiles, illogical/win11 are .conf ones – the
+  # running provider has to match the active profile, otherwise the rice's
+  # binds are silently not the ones loaded. Real-world finding: install looked
+  # 100% successful, rice just never worked, because CachyOS's own
+  # hyprland.lua skeleton won over the .conf tree. `hyprctl keyword` doesn't
+  # work under the lua provider either – only `hyprctl eval` does.
   provider=$(hyprctl systeminfo 2>/dev/null | grep -i configProvider | sed 's/.*: *//' | tr -d '[:space:]')
-  if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
-    err "~/.config/hypr/hyprland.lua exists – dotswap's .conf tree may be ignored"
-    err "  fix: mv ~/.config/hypr/hyprland.lua{,.disabled} then re-login (NOT hyprctl reload)"
-  fi
-  # Confirmed good value (normal .conf-based session): "hyprlang". The only
-  # confirmed-bad value from the field is "lua" (CachyOS's alternate
-  # provider). Anything else unrecognized is printed as-is, not asserted
-  # broken – better an unlabeled value than a false "BROKEN" here.
-  case "$provider" in
-    ""|*hyprlang*) ok "configProvider: ${provider:-hyprlang}" ;;
-    *lua*) err "configProvider: $provider – dotswap's hyprland.conf/custom/keybinds.conf are NOT active"
-       err "  fix: mv ~/.config/hypr/hyprland.lua{,.disabled} then re-login (NOT hyprctl reload)" ;;
-    *) warn "configProvider: $provider (unrecognized – verify manually if binds seem missing)" ;;
+  cur_profile=$(cat "$HOME/.local/state/dotswap-profile" 2>/dev/null || echo "")
+  case "$cur_profile" in
+    ambxst|43pr)     want=lua ;;
+    illogical|win11) want=hyprlang ;;
+    *)               want="" ;;
   esac
+  case "$provider" in
+    "")          warn "configProvider: unknown (hyprctl unavailable – not inside a Hyprland session?)" ;;
+    *lua*)       [ "$want" = hyprlang ] \
+                   && { err "configProvider: lua, but profile '$cur_profile' is a .conf rice – its keybinds are NOT active"
+                        err "  fix: rm ~/.config/hypr/hyprland.lua then re-login (NOT hyprctl reload)"; } \
+                   || ok "configProvider: lua${want:+ (matches profile $cur_profile)}" ;;
+    *hyprlang*)  [ "$want" = lua ] \
+                   && { err "configProvider: hyprlang, but profile '$cur_profile' is a Lua rice – its keybinds are NOT active"
+                        err "  fix: make sure ~/.config/hypr/hyprland.lua exists (dotswap use $cur_profile) then re-login"; } \
+                   || ok "configProvider: hyprlang${want:+ (matches profile $cur_profile)}" ;;
+    *)           warn "configProvider: $provider (unrecognized – verify manually if binds seem missing)" ;;
+  esac
+  if [ "$want" = lua ] && [ ! -f "$HOME/.config/hypr/hyprland.lua" ]; then
+    err "~/.config/hypr/hyprland.lua missing – profile $cur_profile needs it (dotswap use $cur_profile)"
+  elif [ "$want" = hyprlang ] && [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
+    err "~/.config/hypr/hyprland.lua exists – it will win over hyprland.conf on the next login"
+    err "  fix: rm ~/.config/hypr/hyprland.lua then re-login (NOT hyprctl reload)"
+  fi
 
   section "Monitor config applied"
   MON_CONF="$HOME/.config/hypr/monitors.conf"
@@ -240,7 +256,7 @@ run_doctor() {
     done < "$MON_CONF"
     [ "$mon_mismatch" -eq 0 ] && ok "monitors.conf positions match hyprctl monitors -j"
   else
-    warn "no ~/.config/hypr/monitors.conf or jq missing – skipping monitor-position check"
+    ok "no ~/.config/hypr/monitors.conf (Lua profiles use monitors.lua) – skipping monitor-position check"
   fi
 
   section "dotswap profile"
@@ -249,11 +265,12 @@ run_doctor() {
   else
     warn "no profile file at ~/.local/state/dotswap-profile – 'dotswap use <profile>' never ran"
   fi
-  if [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
-    ok "~/.config/hypr/hyprland.conf exists ($(wc -l < "$HOME/.config/hypr/hyprland.conf") lines)"
-  else
-    warn "~/.config/hypr/hyprland.conf missing"
-  fi
+  for root in hyprland.lua hyprland.conf; do
+    [ -f "$HOME/.config/hypr/$root" ] \
+      && ok "~/.config/hypr/$root exists ($(wc -l < "$HOME/.config/hypr/$root") lines)"
+  done
+  [ -f "$HOME/.config/hypr/hyprland.lua" ] || [ -f "$HOME/.config/hypr/hyprland.conf" ] \
+    || err "no ~/.config/hypr/hyprland.{lua,conf} at all – Hyprland will autogenerate a stub"
 
   section "Ambxst"
   if need ambxst; then
@@ -349,17 +366,17 @@ run_uninstall() {
 
 banner
 
-# CachyOS 0.55+ Hyprland picks its config provider at startup: if
-# ~/.config/hypr/hyprland.lua exists (the cachyos-hypr-noctalia skeleton
-# ships one), it's used INSTEAD of hyprland.conf and this repo's whole .conf
-# tree loads with zero effect and zero error – install looks 100% successful,
-# but no keybind from it is ever active. Disable it so the next Hyprland
-# start picks up hyprland.conf instead.
-if [ "$MODE" != update ] && [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
-  mv "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/hypr/hyprland.lua.disabled"
-  warn "found ~/.config/hypr/hyprland.lua (CachyOS's config) – disabled it (renamed .disabled)"
-  warn "the config provider is picked at Hyprland startup, so this needs a re-login/reboot to take effect"
-  warn "do NOT run 'hyprctl reload' before then – reload in a running lua session wipes all binds"
+# Hyprland picks its config provider at startup: ~/.config/hypr/hyprland.lua
+# (Lua) if it exists, else hyprland.conf. The default profile (ambxst) is a
+# Lua config, so `dotswap use` at the end overwrites hyprland.lua anyway – but
+# CachyOS's own skeleton (cachyos-hypr-noctalia) ships a hyprland.lua too, so
+# keep a copy of whatever was there before we replace it.
+if [ "$MODE" = install ] && [ -f "$HOME/.config/hypr/hyprland.lua" ] \
+   && [ ! -f "$HOME/.config/hypr/hyprland.lua.pre-dotswap" ]; then
+  cp "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/hypr/hyprland.lua.pre-dotswap"
+  warn "existing ~/.config/hypr/hyprland.lua backed up as hyprland.lua.pre-dotswap"
+  warn "the config provider is picked at Hyprland startup – re-login/reboot after this script"
+  warn "do NOT run 'hyprctl reload' before then – a reload mid-swap can wipe all binds"
 fi
 
 # Ask for sudo up front. Several steps below run sudo inside spin(), which
@@ -374,7 +391,7 @@ if has_tty; then
   if ! sudo -v < /dev/tty; then
     err "sudo authentication failed – wrong password 3x, or a keyboard-layout"
     err "mismatch (cz/us) while typing it. Fix that first, then re-run:"
-    err "  curl -fsSL jachym.djt-group.com/install | bash"
+    err "  curl -fsSL solta.tech/install | bash"
     exit 1
   fi
   ( while true; do sleep 60; sudo -n true 2>/dev/null || exit; kill -0 $$ 2>/dev/null || exit; done ) &
@@ -431,7 +448,7 @@ for p in "${CORE_PKGS[@]}"; do
     || { printf '   %s✗%s %s\n' "$RED" "$R" "$p"; FAILS+=("pkg: $p"); }
 done
 if need yay; then
-  printf '   %sAUR (quickshell, papirus-folders)…%s\n' "$DIM" "$R"
+  printf '   %sAUR (papirus-folders)…%s\n' "$DIM" "$R"
   for p in "${AUR_PKGS[@]}"; do
     if have "$p"; then printf '   %s✓%s %s (installed)\n' "$GRN" "$R" "$p"; continue; fi
     spin "building $p (AUR)…" yay -S --needed --noconfirm "$p" \
@@ -439,7 +456,7 @@ if need yay; then
       || { printf '   %s⚠%s  %s (AUR, log: %s)\n' "$YEL" "$R" "$p" "$SPIN_LOG"; tail -n5 "$SPIN_LOG" | sed 's/^/       /'; FAILS+=("aur: $p ($SPIN_LOG)"); }
   done
 else
-  warn "no yay – skipping AUR packages (install quickshell-git, papirus-folders later)"
+  warn "no yay – skipping AUR packages (install papirus-folders later)"
 fi
 
 # 43pr rice (github.com/43PR/dotfiles): its GTK theme expects white Papirus
