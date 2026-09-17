@@ -150,7 +150,7 @@ banner() {
 }
 
 step=0
-say()  { step=$((step+1)); printf '\n%s[%s%d%s/6]%s %s%s%s\n' \
+say()  { step=$((step+1)); printf '\n%s[%s%d%s/7]%s %s%s%s\n' \
           "$DIM" "$CYN" "$step" "$DIM" "$R" "$B" "$1" "$R"; }
 ok()   { printf '   %s✓%s %s\n' "$GRN" "$R" "$1"; }
 warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
@@ -441,11 +441,17 @@ if [ "$MODE" = update ]; then
       || warn "package upgrade hit issues"
   fi
 fi
+# Repo first; a package that isn't in this distro's repos (wlogout is in
+# CachyOS's repo but AUR-only on vanilla Arch) falls back to yay.
 for p in "${CORE_PKGS[@]}"; do
   if have "$p"; then printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; continue; fi
-  sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1 \
-    && printf '   %s✓%s %s\n' "$GRN" "$R" "$p" \
-    || { printf '   %s✗%s %s\n' "$RED" "$R" "$p"; FAILS+=("pkg: $p"); }
+  if sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1; then
+    printf '   %s✓%s %s\n' "$GRN" "$R" "$p"
+  elif need yay && spin "building $p (AUR)…" yay -S --needed --noconfirm "$p"; then
+    printf '   %s✓%s %s (AUR)\n' "$GRN" "$R" "$p"
+  else
+    printf '   %s✗%s %s\n' "$RED" "$R" "$p"; FAILS+=("pkg: $p")
+  fi
 done
 if need yay; then
   printf '   %sAUR (papirus-folders)…%s\n' "$DIM" "$R"

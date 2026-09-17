@@ -54,47 +54,94 @@ profile_exists() {
   [[ -d "$SRC_BASE/chezmoi-$1" ]]
 }
 
-# Mirror current disk state into a profile source dir
+# Mirror current disk state into a profile source dir.
+#
+# Goes through `chezmoi add` rather than copying the target tree verbatim: a
+# raw copy loses chezmoi's attribute prefixes, so a source file like
+# literal_create_custom_config.lua (target: create_custom_config.lua) came back
+# as create_custom_config.lua – which chezmoi then reads as the `create_`
+# attribute and turns into a second target, custom_config.lua. One more
+# snapshot later the source held both spellings and every `dotswap use`
+# died with "inconsistent state". `chezmoi add` derives the right prefixes
+# (literal_, executable_, private_, dot_) itself.
+#
+# Templates (*.tmpl) are left alone – the rendered target must not replace
+# the template – and files that vanished from disk are forgotten, so the
+# source still mirrors the desktop.
+snapshot_path() {
+  local src="$1" tgt="$2" tmpls prune=()
+  if [[ ! -e "$tgt" && ! -L "$tgt" ]]; then
+    chezmoi --source "$src" forget --force "$tgt" >/dev/null 2>&1 || true
+    return
+  fi
+  # forget managed entries whose target is gone
+  chezmoi --source "$src" managed --path-style=absolute --include=files,symlinks "$tgt" 2>/dev/null \
+    | while IFS= read -r f; do
+        [[ -e "$f" || -L "$f" ]] || chezmoi --source "$src" forget --force "$f" >/dev/null 2>&1 || true
+      done
+  if [[ -f "$tgt" || -L "$tgt" ]]; then
+    chezmoi --source "$src" add --secrets ignore "$tgt"
+    return
+  fi
+  # never snapshot private runtime data (clipboard history = copied secrets)
+  for g in "${SENSITIVE_GLOBS[@]}"; do prune+=(-name "$g" -o); done
+  tmpls=$(chezmoi --source "$src" managed --path-style=absolute --include=templates "$tgt" 2>/dev/null)
+  find "$tgt" \( "${prune[@]}" -false \) -prune -o \( -type f -o -type l \) -print \
+    | { grep -vxF "${tmpls:-/nonexistent}" || true; } \
+    | xargs -r -d '\n' chezmoi --source "$src" add --secrets ignore
+}
+
 snapshot_to() {
   local profile="$1"
   local src="$SRC_BASE/chezmoi-$profile"
-  mkdir -p "$src/dot_config" "$src/dot_local/share"
+  mkdir -p "$src"
 
   for d in "${TRACKED_CONFIG_DIRS[@]}"; do
-    if [[ -e "$HOME/.config/$d" ]]; then
-      rm -rf "$src/dot_config/$d"
-      cp -r "$HOME/.config/$d" "$src/dot_config/$d"
-    else
-      rm -rf "$src/dot_config/$d"
-    fi
+    snapshot_path "$src" "$HOME/.config/$d"
   done
-
   for d in "${TRACKED_LOCAL_SHARE_DIRS[@]}"; do
-    if [[ -e "$HOME/.local/share/$d" ]]; then
-      rm -rf "$src/dot_local/share/$d"
-      cp -r "$HOME/.local/share/$d" "$src/dot_local/share/$d"
-      # strip private runtime data (clipboard history = copied secrets)
-      for g in "${SENSITIVE_GLOBS[@]}"; do
-        rm -rf "$src/dot_local/share/$d/$g"
-      done
-    else
-      rm -rf "$src/dot_local/share/$d"
-    fi
+    snapshot_path "$src" "$HOME/.local/share/$d"
+    # prune anything sensitive that an older, copy-based snapshot left behind
+    for g in "${SENSITIVE_GLOBS[@]}"; do
+      find "$src/dot_local/share" -name "$g" -exec rm -rf {} + 2>/dev/null || true
+    done
   done
-
   for f in "${TRACKED_HOME_FILES[@]}"; do
-    local target_name="dot_${f#.}"
-    if [[ -f "$HOME/$f" ]]; then
-      cp "$HOME/$f" "$src/$target_name"
-    else
-      rm -f "$src/$target_name"
-    fi
+    snapshot_path "$src" "$HOME/$f"
   done
 
   if [[ -d "$src/.git" ]]; then
     git -C "$src" add -A
     git -C "$src" commit -q -m "snapshot $(date -Iseconds)" 2>/dev/null || true
   fi
+}
+
+# Every file a profile manages under the tracked paths, absolute.
+managed_files() {
+  local src="$SRC_BASE/chezmoi-$1" paths=()
+  for d in "${TRACKED_CONFIG_DIRS[@]}";      do paths+=("$HOME/.config/$d"); done
+  for d in "${TRACKED_LOCAL_SHARE_DIRS[@]}"; do paths+=("$HOME/.local/share/$d"); done
+  for f in "${TRACKED_HOME_FILES[@]}";       do paths+=("$HOME/$f"); done
+  chezmoi --source "$src" managed --path-style=absolute --include=files,symlinks "${paths[@]}" 2>/dev/null | sort -u
+}
+
+# chezmoi apply only ever writes; it never removes what the previous profile
+# put down. Left alone, ambxst's hyprland.lua would survive a switch to
+# illogical (Hyprland then boots the wrong rice), and the next snapshot would
+# bake it into the illogical branch for good. So before applying, drop the
+# files the OUTGOING profile manages that the incoming one doesn't. Untracked
+# runtime data (clipboard history, caches) is not managed by either, so it
+# stays.
+prune_foreign() {
+  local from="$1" to="$2" f
+  comm -23 <(managed_files "$from") <(managed_files "$to") | while IFS= read -r f; do
+    rm -f "$f"
+  done
+  # tidy directories that are now empty (rmdir refuses non-empty ones)
+  for d in "${TRACKED_CONFIG_DIRS[@]}"; do
+    [[ -d "$HOME/.config/$d" ]] && find "$HOME/.config/$d" -depth -type d -empty -delete 2>/dev/null
+  done
+  return 0
 }
 
 apply_profile() {
@@ -111,6 +158,7 @@ cmd_use() {
   if [[ "$cur" != "unknown" && "$cur" != "$profile" ]] && profile_exists "$cur"; then
     echo "Saving current state to '$cur'..."
     snapshot_to "$cur"
+    prune_foreign "$cur" "$profile"
   fi
   echo "Applying '$profile'..."
   apply_profile "$profile"
