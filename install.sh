@@ -599,6 +599,18 @@ if have sublime-text-4 && [ -f /usr/share/applications/sublime_text.desktop ]; t
   sed -e 's/^StartupWMClass=.*/StartupWMClass=sublime_text/' -e '/^OnlyShowIn=/d' \
     /usr/share/applications/sublime_text.desktop > "$HOME/.local/share/applications/sublime_text.desktop" \
     && ok "sublime_text.desktop override (dock icon)" || warn "sublime_text.desktop override failed"
+  # Package Control bootstrap: the tracked Package Control.sublime-settings
+  # lists the packages (LSP, Terminus, Catppuccin, …) and Package Control
+  # installs them on first launch – but only if it is there itself.
+  PC="$HOME/.config/sublime-text/Installed Packages/Package Control.sublime-package"
+  if [ -f "$PC" ]; then
+    ok "Sublime Package Control present"
+  else
+    mkdir -p "$(dirname "$PC")"
+    curl -fsSL "https://packagecontrol.io/Package%20Control.sublime-package" -o "$PC" \
+      && ok "Sublime Package Control bootstrapped (packages install on first launch)" \
+      || { warn "Package Control download failed – Sublime: Tools → Install Package Control"; FAILS+=("sublime: Package Control"); }
+  fi
 fi
 
 # brrtfetch – the purple-glitch fastfetch bound to Super+Return (custom Go build)
