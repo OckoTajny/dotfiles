@@ -59,9 +59,12 @@ if [ "$MODE_EXPLICIT" -eq 0 ] && has_tty; then
   printf '  2) Update (pull new packages/tools, configs untouched)\n'
   printf '  3) Doctor (diagnose a broken rice, read-only)\n'
   printf '  4) Uninstall (remove dotswap'\''s own tools/profiles/state)\n'
-  printf 'Pick [1]: '
-  choice=1
-  IFS= read -r choice </dev/tty || choice=1
+  # default: update when dotswap is already on this machine, install otherwise
+  default=1; [ -x "$BIN/dotswap" ] && default=2
+  printf 'Pick [%s]: ' "$default"
+  choice=$default
+  IFS= read -r choice </dev/tty || choice=$default
+  [ -z "$(printf '%s' "$choice" | tr -d '[:space:]')" ] && choice=$default
   case "$(printf '%s' "$choice" | tr -d '[:space:]')" in
     2) MODE=update ;;
     3) MODE=doctor ;;
@@ -109,6 +112,7 @@ OPTIONAL_APPS=(
   "whatsapp-linux-desktop|WhatsApp"
   "jetbrains-toolbox|JetBrains Toolbox (IntelliJ)"
   "onlyoffice-bin|OnlyOffice"
+  "sublime-text-4|Sublime Text"
 )
 
 FAILS=()
@@ -585,6 +589,17 @@ for p in "${chosen[@]}"; do
     && { printf '   %s✓%s %s\n' "$GRN" "$R" "$p"; rm -f "$SPIN_LOG"; } \
     || { printf '   %s⚠%s  %s (log: %s)\n' "$YEL" "$R" "$p" "$SPIN_LOG"; tail -n5 "$SPIN_LOG" | sed 's/^/       /'; FAILS+=("app: $p ($SPIN_LOG)"); }
 done
+
+# Sublime Text: its stock .desktop says StartupWMClass=subl but the Wayland
+# app_id is sublime_text, so the dock never matches the window to an icon.
+# A user-level override fixes that; the editor config itself (Packages/User)
+# is tracked by dotswap and comes with the profile.
+if have sublime-text-4 && [ -f /usr/share/applications/sublime_text.desktop ]; then
+  mkdir -p "$HOME/.local/share/applications"
+  sed -e 's/^StartupWMClass=.*/StartupWMClass=sublime_text/' -e '/^OnlyShowIn=/d' \
+    /usr/share/applications/sublime_text.desktop > "$HOME/.local/share/applications/sublime_text.desktop" \
+    && ok "sublime_text.desktop override (dock icon)" || warn "sublime_text.desktop override failed"
+fi
 
 # brrtfetch – the purple-glitch fastfetch bound to Super+Return (custom Go build)
 if need brrtfetch; then

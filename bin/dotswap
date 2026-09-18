@@ -11,6 +11,9 @@ TRACKED_CONFIG_DIRS=(
   alacritty ambxst btop cava fastfetch fish foot fuzzel hypr
   illogical-impulse kde-material-you-colors kitty lazygit mako matugen
   nvim quickshell rofi waybar wlogout
+  # Sublime: only the user settings/keymap – Installed Packages are binaries
+  # that Package Control re-fetches from the installed_packages list anyway
+  sublime-text/Packages/User
 )
 TRACKED_LOCAL_SHARE_DIRS=(ambxst)
 TRACKED_HOME_FILES=(.zshrc)
@@ -18,7 +21,8 @@ TRACKED_HOME_FILES=(.zshrc)
 # Private/runtime data that must NEVER be committed (clipboard history holds
 # copied secrets – tokens, passwords). Pruned from each snapshot. Paths are
 # relative to a copied tracked dir under dot_local/share or dot_config.
-SENSITIVE_GLOBS=(clipboard.db clipboard-data keys.db chats)
+# Globs, not names: Ambxst 1.3 split clipboard.db into clipboard-{pinned,unpinned}.db.
+SENSITIVE_GLOBS=('clipboard*.db' 'clipboard-data*' 'keys.db' 'chats')
 
 usage() {
   cat <<'EOF'
