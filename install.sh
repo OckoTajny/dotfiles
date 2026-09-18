@@ -742,7 +742,9 @@ else
   for pkg in "${VK_PKGS[@]}"; do
     have "$pkg" || sudo pacman -S --needed --noconfirm "$pkg" >/dev/null 2>&1
   done
-  for pkg in cmake git vulkan-tools; do
+  # GGML_VULKAN compiles shaders at build time: needs glslc (shaderc) plus
+  # the Vulkan/SPIR-V headers, or cmake dies with "SPIRV-Headers not found"
+  for pkg in cmake git vulkan-tools vulkan-headers shaderc spirv-headers spirv-tools glslang; do
     have "$pkg" || sudo pacman -S --needed --noconfirm "$pkg" >/dev/null 2>&1
   done
 
