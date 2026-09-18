@@ -193,7 +193,21 @@ hl.layer_rule({
     no_anim = true,
     blur = true,
     blur_popups = true,
-    ignore_alpha = 0.20,
-    match = { namespace = "^ambxst(:.*)?$" },
+    ignore_alpha = 0.50,
+    match = { namespace = "ambxst" },
+})
+
+hl.layer_rule({
+    no_anim = true,
+    blur = true,
+    blur_popups = true,
+    match = { namespace = "overview" },
+})
+
+hl.layer_rule({
+    no_anim = true,
+    blur = true,
+    blur_popups = true,
+    match = { namespace = "presets" },
 })
 

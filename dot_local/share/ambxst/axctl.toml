@@ -1,27 +1,39 @@
+[target]
+hyprland = "hyprland.lua"
+niri = "niri.kdl"
+mango = "mango.conf"
+
 [startup]
 exec-once = "ambxst"
 [appearance]
+
 [appearance.gaps]
 inner = 2
 outer = 4
+
 [appearance.border]
 width = 2
 active_color = "rgb(ddb9f7)"
 inactive_color = "rgb(252126)"
 rounding = 16
+
 [appearance.opacity]
 active = 1.0
 inactive = 1.0
+
 [appearance.blur]
 enabled = true
 size = 4
 passes = 2
+
 [appearance.shadow]
 enabled = true
 size = 8
 color = "rgba(00000080)"
+
 [appearance.animations]
 enabled = true
+workspace_style = "slidefade 20%"
 
 [general]
 layout = "dwindle"
@@ -861,26 +873,13 @@ blur = true
 ignore_alpha_value = 0.4
 
 [[layer_rules]]
-namespace = "ambxst"
+namespace = "^ambxst(:.*)?$"
 blur = true
 blur_popups = true
 no_anim = true
-ignore_alpha_value = 0.5
-
-[[layer_rules]]
-namespace = "overview"
-blur = true
-blur_popups = true
-no_anim = true
-
-[[layer_rules]]
-namespace = "presets"
-blur = true
-blur_popups = true
-no_anim = true
+ignore_alpha_value = 0.20
 
 [input]
 [input.keyboard]
 layouts = ""
 variants = ""
-

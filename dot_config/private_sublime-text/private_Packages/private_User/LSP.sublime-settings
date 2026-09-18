@@ -1,0 +1,14 @@
+{
+	"show_diagnostics_panel_on_save": 0,
+	"show_diagnostics_in_view_status": true,
+	"show_code_actions": "bulb",
+	"show_inlay_hints": true,
+	"lsp_format_on_save": true,
+	"lsp_code_actions_on_save": {
+		"source.organizeImports": true,
+		"source.fixAll.eslint": true,
+	},
+	"semantic_highlighting": true,
+	"diagnostics_gutter_marker": "sign",
+	"log_server": [],
+}
