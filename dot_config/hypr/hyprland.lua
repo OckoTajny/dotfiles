@@ -51,6 +51,14 @@ hl.config({
     },
 })
 
+---- TOUCHPAD GESTURES ----
+
+hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })  -- 3 fingers l/r = switch workspace
+hl.gesture({ fingers = 4, direction = "up",   action = "fullscreen" })
+hl.gesture({ fingers = 4, direction = "down", action = "close" })
+
+hl.config({ gestures = { workspace_swipe_distance = 300, workspace_swipe_create_new = true } })
+
 ---- LOOK AND FEEL ----
 
 hl.config({ render = { expand_undersized_textures = false}})
