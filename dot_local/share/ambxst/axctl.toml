@@ -183,6 +183,14 @@ flags = ""
 enabled = true
 
 [[keybinds]]
+modifiers = ["SUPER", "SHIFT"]
+key = "B"
+dispatcher = "exec"
+argument = "ambxst toggle bar"
+flags = ""
+enabled = true
+
+[[keybinds]]
 modifiers = ["SUPER"]
 key = "C"
 dispatcher = "killactive"
@@ -878,6 +886,10 @@ blur = true
 blur_popups = true
 no_anim = true
 ignore_alpha_value = 0.20
+
+[[layer_rules]]
+namespace = "^ambxst:wallpaper$"
+place_within_backdrop = true
 
 [input]
 [input.keyboard]

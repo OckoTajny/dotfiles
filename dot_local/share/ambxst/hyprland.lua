@@ -67,6 +67,7 @@ hl.bind("SUPER + SHIFT + R", hl.dsp.exec_cmd("ambxst run screenrecord"))
 hl.bind("SUPER + SHIFT + A", hl.dsp.exec_cmd("ambxst run lens"))
 hl.bind("SUPER + ALT + B", hl.dsp.exec_cmd("ambxst reload"))
 hl.bind("SUPER + CTRL + ALT + B", hl.dsp.exec_cmd("ambxst quit"))
+hl.bind("SUPER + SHIFT + B", hl.dsp.exec_cmd("ambxst toggle bar"))
 hl.bind("SUPER + C", hl.dsp.window.close())
 hl.bind("SUPER + 1", hl.dsp.focus({ workspace = "1" }))
 hl.bind("SUPER + 2", hl.dsp.focus({ workspace = "2" }))
@@ -195,5 +196,9 @@ hl.layer_rule({
     blur_popups = true,
     ignore_alpha = 0.20,
     match = { namespace = "^ambxst(:.*)?$" },
+})
+
+hl.layer_rule({
+    match = { namespace = "^ambxst:wallpaper$" },
 })
 

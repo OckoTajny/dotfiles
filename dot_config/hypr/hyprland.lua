@@ -80,7 +80,7 @@ hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special", silent = 
 -- flickers. The media keys get the reverse ("le" -> release instead of repeat).
 -- Rebind them here with the flags axctl.toml actually asked for.
 hl.unbind("SUPER + Super_L")
-hl.bind("SUPER + Super_L", hl.dsp.exec_cmd("ambxst run launcher"), { release = true })
+hl.bind("SUPER + Super_L", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.local/bin/ambxst-launcher-tap"), { release = true })
 for key, cmd in pairs({
     XF86AudioRaiseVolume = "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 10%+",
     XF86AudioLowerVolume = "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 10%-",

@@ -1,0 +1,19 @@
+diff --git a/modules/services/GlobalShortcuts.qml b/modules/services/GlobalShortcuts.qml
+index b1aa3be4..127f5abc 100644
+--- a/modules/services/GlobalShortcuts.qml
++++ b/modules/services/GlobalShortcuts.qml
+@@ -154,7 +154,14 @@ QtObject {
+         }
+     }
+ 
++    // Local fix: a Super tap under Hyprland's Lua config provider delivers the
++    // launcher toggle twice a few ms apart (open, then close again - the
++    // launcher only flickered). Swallow a second toggle inside 200 ms.
++    property double _lastLauncherToggle: 0
+     function toggleLauncher() {
++        const now = Date.now();
++        if (now - _lastLauncherToggle < 200) return;
++        _lastLauncherToggle = now;
+         const isActive = Visibilities.currentActiveModule === "launcher";
+         if (isActive && GlobalStates.widgetsTabCurrentIndex === 0 && GlobalStates.launcherSearchText === "") {
+             Visibilities.setActiveModule("");
