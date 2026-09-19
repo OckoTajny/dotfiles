@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Super tap -> Ambxst launcher (release bind on SUPER + Super_L).
+# The shell side (GlobalShortcuts.toggleLauncher) swallows the duplicate
+# toggle a tap produces under Hyprland's Lua provider; this only serialises
+# fast repeats so two spawns can't interleave.
+lock="${XDG_RUNTIME_DIR:-/tmp}/ambxst-launcher-tap"
+exec 9>"$lock.lock"
+flock 9
+now=$(date +%s%N)
+last=$(cat "$lock" 2>/dev/null || echo 0)
+echo "$now" > "$lock"
+(( now - last < 150000000 )) && exit 0
+exec ambxst run launcher
