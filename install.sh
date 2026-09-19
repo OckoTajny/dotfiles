@@ -481,7 +481,52 @@ fi
 # Ambxst shell (ambxst rice's bar/dock) – not a package, has its own installer.
 # The tracked hyprland.conf already has `source = ~/.local/share/ambxst/hyprland.conf`,
 # so without this, Hyprland loads fine but no bar/dock ever appears.
-if need ambxst; then
+if need ambxst && [ "$MODE" = update ]; then
+  # A bare `need ambxst` never updated anything: this machine sat on 1.1.5 for
+  # four months while upstream shipped 1.3.6, and the stale shell was the real
+  # cause of the "everything stutters and glitches" symptom. Ambxst's own
+  # installer reads from a tty (curl|sh), which an unattended update run does
+  # not have, so do the two things it would do: put the source repo on the
+  # release tag and install the matching, checksum-verified binary.
+  AMB_SRC="$HOME/.local/src/ambxst"
+  case "$(uname -m)" in
+    x86_64)        amb_arch=amd64 ;;
+    aarch64|arm64) amb_arch=arm64 ;;
+    *)             amb_arch="" ;;
+  esac
+  amb_cur=$(ambxst --version 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -1)
+  amb_new=$(curl -fsSL --max-time 30 -o /dev/null -w '%{url_effective}' \
+              https://github.com/Axenide/Ambxst/releases/latest 2>/dev/null | sed 's#.*/tag/##')
+  if [ -z "$amb_arch" ]; then
+    warn "Ambxst: no release binary for $(uname -m) – keeping ${amb_cur:-current}"
+  elif [ -z "$amb_new" ]; then
+    warn "Ambxst: couldn't reach GitHub for the latest release – keeping ${amb_cur:-current}"
+  elif [ "$amb_new" = "$amb_cur" ]; then
+    ok "Ambxst $amb_cur (latest)"
+  else
+    amb_base="https://github.com/Axenide/Ambxst/releases/download/$amb_new"
+    amb_tmp=$(mktemp -d)
+    if spin "updating Ambxst $amb_cur → $amb_new…" bash -c "
+           curl -fL --retry 10 --retry-delay 5 --retry-all-errors \
+                --speed-limit 2048 --speed-time 60 \
+                '$amb_base/ambxst-linux-$amb_arch' -o '$amb_tmp/ambxst-linux-$amb_arch' \
+        && curl -fsSL '$amb_base/SHA256SUMS' -o '$amb_tmp/SHA256SUMS' \
+        && cd '$amb_tmp' && sha256sum --check --ignore-missing SHA256SUMS" \
+       && sudo install -m755 "$amb_tmp/ambxst-linux-$amb_arch" /usr/local/bin/ambxst; then
+      # keep the QML source in step with the binary, or the shell loads the old UI
+      if [ -d "$AMB_SRC/.git" ]; then
+        git -C "$AMB_SRC" fetch --depth=1 origin "refs/tags/$amb_new:refs/tags/$amb_new" >/dev/null 2>&1 \
+          && git -C "$AMB_SRC" reset --hard "$amb_new" >/dev/null 2>&1 \
+          || warn "Ambxst binary updated but the source repo at $AMB_SRC did not move to $amb_new"
+      fi
+      ok "Ambxst $amb_cur → $amb_new (restart: systemctl --user restart ambxst)"
+    else
+      warn "Ambxst update to $amb_new failed – staying on ${amb_cur:-current}"
+      FAILS+=("ambxst: update to $amb_new")
+    fi
+    rm -rf "$amb_tmp"
+  fi
+elif need ambxst; then
   ok "Ambxst present"
 elif has_tty; then
   # < /dev/tty: this script's own stdin is the curl|bash pipe (already
