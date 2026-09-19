@@ -757,12 +757,24 @@ else
              && cmake --build '$BUILD_DIR/build' -j$(nproc) --target whisper-cli"; then
       install -Dm755 "$BUILD_DIR/build/bin/whisper-cli" "$BIN/whisper-cli"
       mkdir -p "$HOME/.local/share/whisper-cpp"
-      if spin "downloading ggml-large-v3.bin (~3.1GB)…" curl -fsSL -o "$HOME/.local/share/whisper-cpp/ggml-large-v3.bin" \
-        https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin; then
+      MODEL="$HOME/.local/share/whisper-cpp/ggml-large-v3.bin"
+      # 3.1GB routinely outlives a single connection on a slow link. Plain
+      # `curl -fsSL -o model` had no timeout, so a dead TCP connection hung
+      # it forever (real case: stuck at 1.4GB for 14h with zero bytes moving
+      # and the whole installer waiting on it). --speed-time/--speed-limit
+      # abort a stalled transfer so --retry can reconnect, -C - resumes from
+      # the partial, and the file only moves into place once complete - so
+      # the "already installed" check above can't be fooled by a truncated
+      # model that whisper-cli would then fail to load.
+      if spin "downloading ggml-large-v3.bin (~3.1GB, resumable)…" \
+           curl -fL -C - --retry 20 --retry-delay 10 --retry-all-errors \
+                --speed-limit 2048 --speed-time 60 \
+                -o "$MODEL.part" \
+                https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin; then
+        mv -f "$MODEL.part" "$MODEL"
         ok "whisper.cpp GPU engine installed ($GPU_VENDOR, Vulkan)"
       else
-        rm -f "$HOME/.local/share/whisper-cpp/ggml-large-v3.bin"
-        fail "download ggml-large-v3.bin (whisper.cpp built OK, CPU engine still active until this succeeds)"
+        fail "download ggml-large-v3.bin (partial kept at $MODEL.part, a re-run resumes it; CPU engine still active)"
       fi
     else
       fail "build whisper.cpp with Vulkan (log: $SPIN_LOG) — CPU dictation engine still works"
