@@ -799,7 +799,11 @@ else
     if git clone --quiet --depth 1 https://github.com/ggml-org/whisper.cpp "$BUILD_DIR" >/dev/null 2>&1 \
       && spin "building whisper.cpp (Vulkan, $GPU_VENDOR)…" \
            bash -c "cmake -S '$BUILD_DIR' -B '$BUILD_DIR/build' -DGGML_VULKAN=ON -DCMAKE_BUILD_TYPE=Release \
+             -DBUILD_SHARED_LIBS=OFF \
              && cmake --build '$BUILD_DIR/build' -j$(nproc) --target whisper-cli"; then
+      # BUILD_SHARED_LIBS=OFF: only the binary gets installed and $BUILD_DIR is
+      # deleted right after, so a shared build left whisper-cli dead on arrival
+      # with "libwhisper.so.1: cannot open shared object file".
       install -Dm755 "$BUILD_DIR/build/bin/whisper-cli" "$BIN/whisper-cli"
       mkdir -p "$HOME/.local/share/whisper-cpp"
       MODEL="$HOME/.local/share/whisper-cpp/ggml-large-v3.bin"
@@ -817,7 +821,12 @@ else
                 -o "$MODEL.part" \
                 https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin; then
         mv -f "$MODEL.part" "$MODEL"
-        ok "whisper.cpp GPU engine installed ($GPU_VENDOR, Vulkan)"
+        # the build can "succeed" and still produce a binary that won't start
+        if "$BIN/whisper-cli" --help >/dev/null 2>&1; then
+          ok "whisper.cpp GPU engine installed ($GPU_VENDOR, Vulkan)"
+        else
+          fail "whisper-cli built but won't run ($("$BIN/whisper-cli" --help 2>&1 | head -1)) — CPU engine still active"
+        fi
       else
         fail "download ggml-large-v3.bin (partial kept at $MODEL.part, a re-run resumes it; CPU engine still active)"
       fi
