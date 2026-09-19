@@ -73,6 +73,24 @@ hl.unbind("SUPER + S")
 hl.bind("SUPER + S", hl.dsp.workspace.toggle_special({}))
 hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special", silent = true }))
 
+-- axctl's Lua generator (0.0.22) swaps Hyprland's bind flags `r` (release) and
+-- `e` (repeat): axctl.toml has flags = "r" for the Super tap, and the generated
+-- axctl.generated.lua turns it into { repeating = true } - so holding Super
+-- re-fires `ambxst run launcher` at the key-repeat rate and the launcher just
+-- flickers. The media keys get the reverse ("le" -> release instead of repeat).
+-- Rebind them here with the flags axctl.toml actually asked for.
+hl.unbind("SUPER + Super_L")
+hl.bind("SUPER + Super_L", hl.dsp.exec_cmd("ambxst run launcher"), { release = true })
+for key, cmd in pairs({
+    XF86AudioRaiseVolume = "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 10%+",
+    XF86AudioLowerVolume = "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 10%-",
+    XF86MonBrightnessUp  = "ambxst brightness +5",
+    XF86MonBrightnessDown = "ambxst brightness -5",
+}) do
+    hl.unbind(key)
+    hl.bind(key, hl.dsp.exec_cmd(cmd), { locked = true, repeating = true })
+end
+
 -- Scratchpad animation. Ambxst only configures windows/border/fade/workspaces,
 -- so specialWorkspaceIn/Out stay at speed 0 with no curve and the scratchpad
 -- snaps in instead of sliding. These are the values from the pre-Ambxst config.
