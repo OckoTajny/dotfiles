@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Super+P: toggle passwordless sudo, with a notification.
+#
+# The sudoers edit itself happens in the root helper
+# /usr/local/bin/sudo-nopasswd-toggle, which this user may run without a
+# password thanks to one narrow rule in /etc/sudoers.d/50-<user>-toggle-helper.
+# Both are created by the dotfiles installer — nothing here needs a password,
+# a terminal, or a polkit agent.
+set -uo pipefail
+
+HELPER=/usr/local/bin/sudo-nopasswd-toggle
+USER_NAME=$(id -un)
+
+# Open padlock = no password needed, closed = password required.
+#
+# Absolute paths, not bare icon names: a notification daemon resolves a bare
+# name against its own icon theme and draws a broken/placeholder image when the
+# name isn't there — which is why the popup had no picture. A path always
+# renders. Bare names stay as the fallback for machines without Adwaita.
+ICONS=/usr/share/icons/Adwaita/symbolic/status
+ICON_OPEN=$ICONS/changes-allow-symbolic.svg
+ICON_SHUT=$ICONS/changes-prevent-symbolic.svg
+ICON_WARN=$ICONS/dialog-warning-symbolic.svg
+[ -f "$ICON_OPEN" ] || ICON_OPEN=security-low
+[ -f "$ICON_SHUT" ] || ICON_SHUT=changes-prevent
+[ -f "$ICON_WARN" ] || ICON_WARN=dialog-warning
+
+# x-canonical-private-synchronous makes a repeat press replace the previous
+# popup instead of stacking a new one for every toggle.
+notify() {  # $1=icon  $2=urgency  $3=title  $4=body
+    notify-send -a "sudo" -i "$1" -u "$2" \
+        -h string:x-canonical-private-synchronous:sudo-toggle \
+        "$3" "$4" 2>/dev/null || printf '%s: %s\n' "$3" "$4"
+}
+
+state=$(sudo -n "$HELPER" 2>/dev/null) || {
+    notify "$ICON_WARN" critical "Sudo toggle failed" \
+        "Run the installer, or check /etc/sudoers.d/50-${USER_NAME}-toggle-helper"
+    exit 1
+}
+
+case $state in
+    enabled)  notify "$ICON_OPEN" normal   "Passwordless sudo" "🔓 Unlocked — sudo won't ask for a password" ;;
+    disabled) notify "$ICON_SHUT" normal   "Sudo needs password" "🔒 Locked — sudo asks for a password again" ;;
+    *)        notify "$ICON_WARN" critical "Sudo toggle"      "Unknown state: $state" ;;
+esac
