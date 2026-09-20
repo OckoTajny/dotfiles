@@ -2,7 +2,10 @@
 set -euo pipefail
 
 PROFILE_FILE="$HOME/.local/state/dotswap-profile"
-PROFILES=(ambxst illogical win11 43pr)
+PROFILES=(ambxst illogical win11 43pr niri)
+# niri session: the quickshell-ii / waybar rices are Hyprland-only, so only
+# cycle between the Ambxst-shell profiles there.
+[[ -n "${NIRI_SOCKET:-}" ]] && PROFILES=(niri ambxst)
 
 direction="${1:-next}"
 cur=$(cat "$PROFILE_FILE" 2>/dev/null || echo "")

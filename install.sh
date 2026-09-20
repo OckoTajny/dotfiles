@@ -11,8 +11,8 @@ REPO="https://github.com/OckoTajny/dotfiles.git"
 SRC_BASE="$HOME/.local/share"
 BIN="$HOME/.local/bin"
 
-PROFILES=(ambxst illogical win11 43pr)
-declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [43pr]=43pr )
+PROFILES=(ambxst illogical win11 43pr niri)
+declare -A BRANCH=( [ambxst]=ambxst [illogical]=main [win11]=win11 [43pr]=43pr [niri]=niri )
 DEFAULT_PROFILE=ambxst
 
 # `[ -r /dev/tty ]` is a false-positive test here: it passes even with no
@@ -73,7 +73,7 @@ if [ "$MODE_EXPLICIT" -eq 0 ] && has_tty; then
   esac
 fi
 
-CORE_PKGS=(hyprland foot fish mako btop fastfetch fuzzel hypridle hyprlock
+CORE_PKGS=(hyprland niri xwayland-satellite foot fish mako btop fastfetch fuzzel hypridle hyprlock
   wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq
   # keybind targets: voice-to-text dictation, OCR, media, session menu, screenshots
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
@@ -214,7 +214,7 @@ run_doctor() {
   provider=$(hyprctl systeminfo 2>/dev/null | grep -i configProvider | sed 's/.*: *//' | tr -d '[:space:]')
   cur_profile=$(cat "$HOME/.local/state/dotswap-profile" 2>/dev/null || echo "")
   case "$cur_profile" in
-    ambxst|43pr)     want=lua ;;
+    ambxst|43pr|niri) want=lua ;;
     illogical|win11) want=hyprlang ;;
     *)               want="" ;;
   esac

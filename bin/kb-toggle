@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 # kb-toggle: cycle keyboard layout (us,cz) and notify which one is now active.
-# Bound to Super+Space. ponytail: reads main keyboard's active keymap after switch.
+# Bound to Super+Space. Works under Hyprland (hyprctl) and niri (niri msg).
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 
-hyprctl switchxkblayout all next >/dev/null 2>&1
-
-name=$(hyprctl devices -j 2>/dev/null \
-  | jq -r 'first(.keyboards[] | select(.main==true) | .active_keymap) // empty')
+if [ -n "$NIRI_SOCKET" ]; then
+  niri msg action switch-layout next >/dev/null 2>&1
+  # `niri msg keyboard-layouts` marks the active one with " * "
+  name=$(niri msg keyboard-layouts 2>/dev/null | sed -n 's/^ *\* *[0-9]* *//p' | head -1)
+else
+  hyprctl switchxkblayout all next >/dev/null 2>&1
+  name=$(hyprctl devices -j 2>/dev/null \
+    | jq -r 'first(.keyboards[] | select(.main==true) | .active_keymap) // empty')
+fi
 [ -z "$name" ] && name="switched"
 
 notify-send -t 1200 -a keyboard -i input-keyboard "⌨  Keyboard" "$name" 2>/dev/null || true

@@ -9,7 +9,7 @@ SRC_BASE="$HOME/.local/share"
 
 TRACKED_CONFIG_DIRS=(
   alacritty ambxst btop cava fastfetch fish foot fuzzel hypr
-  illogical-impulse kde-material-you-colors kitty lazygit mako matugen
+  illogical-impulse kde-material-you-colors kitty lazygit mako matugen niri
   nvim quickshell rofi waybar wlogout
   # Sublime: only the user settings/keymap – Installed Packages are binaries
   # that Package Control re-fetches from the installed_packages list anyway
@@ -173,7 +173,7 @@ cmd_use() {
   mkdir -p "$(dirname "$PROFILE_FILE")"
   echo "$profile" > "$PROFILE_FILE"
   echo "Now on: $profile"
-  echo "Run 'hyprctl reload' or relogin for compositor changes."
+  echo "niri live-reloads; run 'hyprctl reload' or relogin for Hyprland changes."
 }
 
 cmd_save() {

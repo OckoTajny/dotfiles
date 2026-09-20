@@ -65,13 +65,13 @@ drop_lua_config() {
 }
 target_format() {
   case "$1" in
-    ambxst|43pr) echo lua ;;
+    ambxst|43pr|niri) echo lua ;;
     *)           echo conf ;;
   esac
 }
 
 case "$profile" in
-  ambxst)
+  ambxst|niri)
     kill_quickshell_ii
     kill_43pr
     kill_mako
@@ -96,7 +96,8 @@ case "$profile" in
     ;;
 esac
 
-hyprctl reload >/dev/null 2>&1 || true
+# niri watches its config and live-reloads; Hyprland needs a kick.
+[ -z "${NIRI_SOCKET:-}" ] && hyprctl reload >/dev/null 2>&1 || true
 
 # A .conf <-> Lua switch only fully takes effect after a re-login (the running
 # compositor keeps the provider it started with).
