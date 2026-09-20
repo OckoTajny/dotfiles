@@ -22,3 +22,8 @@ local home = os.getenv("HOME")
 -- idempotent = single instance) instead of the raw /usr/local/bin/ambxst that
 -- races the service and double-spawns the shell.
 hl.env("PATH", home .. "/.local/bin:" .. os.getenv("PATH"))
+
+-- Carried over from the illogical-impulse env (tree no longer installed)
+hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
+hl.env("QT_QPA_PLATFORM", "wayland;xcb")
+hl.env("XDG_DATA_DIRS", home .. "/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share:" .. (os.getenv("XDG_DATA_DIRS") or ""))

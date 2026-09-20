@@ -1,7 +1,3 @@
--- ▄    ▄▄▄  ▄▄ ▄▄  ▄▄▄▄ ▄▄▄▄▄▄ ▄▄    
---  ▀▄ ██▀██ ▀█▄█▀ ██▀▀▀   ██   ██    
--- ▄▀  ██▀██ ██ ██ ▀████   ██   ██▄▄▄ 
-
 hl.on("hyprland.start", function()
     hl.exec_cmd("ambxst")
 end)
@@ -16,7 +12,7 @@ hl.config({
             active_border = "rgb(ddb9f7)",
             inactive_border = "rgb(252126)",
         },
-        layout = "dwindle",
+        layout = "scrolling",
     },
     decoration = {
         rounding = 16,
@@ -140,17 +136,32 @@ hl.bind("SUPER + SHIFT + l", function() local layout = hl.get_active_workspace()
 hl.bind("SUPER + SHIFT + Up", function() local layout = hl.get_active_workspace().tiled_layout; if layout == "monocle" then hl.dispatch(hl.dsp.layout("cyclenext")) else hl.dispatch(hl.dsp.window.move({ direction = "u" })) end end)
 hl.bind("SUPER + SHIFT + k", function() local layout = hl.get_active_workspace().tiled_layout; if layout == "monocle" then hl.dispatch(hl.dsp.layout("cyclenext")) else hl.dispatch(hl.dsp.window.move({ direction = "u" })) end end)
 hl.bind("SUPER + SHIFT + Down", function() local layout = hl.get_active_workspace().tiled_layout; if layout == "monocle" then hl.dispatch(hl.dsp.layout("cycleprev")) else hl.dispatch(hl.dsp.window.move({ direction = "d" })) end end)
-hl.bind("SUPER + SHIFT + Down", function() local layout = hl.get_active_workspace().tiled_layout; if layout == "monocle" then hl.dispatch(hl.dsp.layout("cycleprev")) else hl.dispatch(hl.dsp.window.move({ direction = "d" })) end end)
 hl.bind("SUPER + SHIFT + j", function() local layout = hl.get_active_workspace().tiled_layout; if layout == "monocle" then hl.dispatch(hl.dsp.layout("cycleprev")) else hl.dispatch(hl.dsp.window.move({ direction = "d" })) end end)
-hl.bind("SUPER + SHIFT + j", function() local layout = hl.get_active_workspace().tiled_layout; if layout == "monocle" then hl.dispatch(hl.dsp.layout("cycleprev")) else hl.dispatch(hl.dsp.window.move({ direction = "d" })) end end)
-hl.bind("SUPER + ALT + Right", hl.dsp.exec_cmd("resizeactive 50 0"))
-hl.bind("SUPER + ALT + l", hl.dsp.exec_cmd("resizeactive 50 0"))
-hl.bind("SUPER + ALT + Left", hl.dsp.exec_cmd("resizeactive -50 0"))
-hl.bind("SUPER + ALT + h", hl.dsp.exec_cmd("resizeactive -50 0"))
+hl.bind("SUPER + ALT + Right", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("colresize +0.1")) end end)
+hl.bind("SUPER + ALT + l", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("colresize +0.1")) end end)
+hl.bind("SUPER + ALT + Left", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("colresize -0.1")) end end)
+hl.bind("SUPER + ALT + h", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("colresize -0.1")) end end)
 hl.bind("SUPER + ALT + Down", hl.dsp.exec_cmd("resizeactive 0 50"))
 hl.bind("SUPER + ALT + j", hl.dsp.exec_cmd("resizeactive 0 50"))
 hl.bind("SUPER + ALT + Up", hl.dsp.exec_cmd("resizeactive 0 -50"))
 hl.bind("SUPER + ALT + k", hl.dsp.exec_cmd("resizeactive 0 -50"))
+hl.bind("SUPER + ALT + SPACE", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("promote")) end end)
+hl.bind("SUPER + CTRL + SPACE", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("togglefit")) end end)
+hl.bind("SUPER + SHIFT + SPACE", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("colresize +conf")) end end)
+hl.bind("SUPER + ALT + CTRL + Left", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("swapcol l")) end end)
+hl.bind("SUPER + ALT + CTRL + h", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("swapcol l")) end end)
+hl.bind("SUPER + ALT + CTRL + Right", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("swapcol r")) end end)
+hl.bind("SUPER + ALT + CTRL + l", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("swapcol r")) end end)
+hl.bind("SUPER + CTRL + ALT + 1", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 1")) end end)
+hl.bind("SUPER + CTRL + ALT + 2", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 2")) end end)
+hl.bind("SUPER + CTRL + ALT + 3", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 3")) end end)
+hl.bind("SUPER + CTRL + ALT + 4", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 4")) end end)
+hl.bind("SUPER + CTRL + ALT + 5", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 5")) end end)
+hl.bind("SUPER + CTRL + ALT + 6", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 6")) end end)
+hl.bind("SUPER + CTRL + ALT + 7", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 7")) end end)
+hl.bind("SUPER + CTRL + ALT + 8", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 8")) end end)
+hl.bind("SUPER + CTRL + ALT + 9", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 9")) end end)
+hl.bind("SUPER + CTRL + ALT + 0", function() if hl.get_active_workspace().tiled_layout == "scrolling" then hl.dispatch(hl.dsp.layout("movecoltoworkspace 10")) end end)
 
 -- Generated by axctl LuaGenerator (Window Rules)
 -- Do not edit manually!

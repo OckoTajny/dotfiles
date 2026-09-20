@@ -36,7 +36,7 @@ enabled = true
 workspace_style = "slidefade 20%"
 
 [general]
-layout = "dwindle"
+layout = "scrolling"
 
 [[keybinds]]
 modifiers = ["SUPER"]
@@ -768,22 +768,6 @@ enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER", "SHIFT"]
-key = "Down"
-dispatcher = "movewindow"
-argument = "d"
-flags = ""
-enabled = true
-
-[[keybinds]]
-modifiers = ["SUPER", "SHIFT"]
-key = "j"
-dispatcher = "movewindow"
-argument = "d"
-flags = ""
-enabled = true
-
-[[keybinds]]
-modifiers = ["SUPER", "SHIFT"]
 key = "j"
 dispatcher = "movewindow"
 argument = "d"
@@ -793,32 +777,32 @@ enabled = true
 [[keybinds]]
 modifiers = ["SUPER", "ALT"]
 key = "Right"
-dispatcher = "resizeactive"
-argument = "50 0"
+dispatcher = "layoutmsg"
+argument = "colresize +0.1"
 flags = ""
 enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER", "ALT"]
 key = "l"
-dispatcher = "resizeactive"
-argument = "50 0"
+dispatcher = "layoutmsg"
+argument = "colresize +0.1"
 flags = ""
 enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER", "ALT"]
 key = "Left"
-dispatcher = "resizeactive"
-argument = "-50 0"
+dispatcher = "layoutmsg"
+argument = "colresize -0.1"
 flags = ""
 enabled = true
 
 [[keybinds]]
 modifiers = ["SUPER", "ALT"]
 key = "h"
-dispatcher = "resizeactive"
-argument = "-50 0"
+dispatcher = "layoutmsg"
+argument = "colresize -0.1"
 flags = ""
 enabled = true
 
@@ -851,6 +835,142 @@ modifiers = ["SUPER", "ALT"]
 key = "k"
 dispatcher = "resizeactive"
 argument = "0 -50"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "ALT"]
+key = "SPACE"
+dispatcher = "layoutmsg"
+argument = "promote"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL"]
+key = "SPACE"
+dispatcher = "layoutmsg"
+argument = "togglefit"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "SHIFT"]
+key = "SPACE"
+dispatcher = "layoutmsg"
+argument = "colresize +conf"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "ALT", "CTRL"]
+key = "Left"
+dispatcher = "layoutmsg"
+argument = "swapcol l"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "ALT", "CTRL"]
+key = "h"
+dispatcher = "layoutmsg"
+argument = "swapcol l"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "ALT", "CTRL"]
+key = "Right"
+dispatcher = "layoutmsg"
+argument = "swapcol r"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "ALT", "CTRL"]
+key = "l"
+dispatcher = "layoutmsg"
+argument = "swapcol r"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "1"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 1"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "2"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 2"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "3"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 3"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "4"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 4"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "5"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 5"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "6"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 6"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "7"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 7"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "8"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 8"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "9"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 9"
+flags = ""
+enabled = true
+
+[[keybinds]]
+modifiers = ["SUPER", "CTRL", "ALT"]
+key = "0"
+dispatcher = "layoutmsg"
+argument = "movecoltoworkspace 10"
 flags = ""
 enabled = true
 

@@ -1,37 +1,15 @@
--- Hyprland config (Lua). Hyprland 0.57 drops the .conf format, so the whole
--- tree lives in Lua now.
---
--- `hyprland/` is the illogical-impulse upstream tree, vendored verbatim from
--- end-4/dots-hyprland — don't edit those files, they get replaced wholesale on
--- the next update. Your own stuff goes in `custom/` or in OVERRIDES below.
---
--- Load order matters: later writes win, and Ambxst is loaded last on purpose
--- so its theme/keybinds beat the illogical-impulse defaults.
+-- Hyprland config (Lua, Hyprland >= 0.56). Rebuilt 2026-09-20 without the
+-- illogical-impulse tree: Ambxst provides the shell, theme and default binds;
+-- everything of ours lives in custom/ or in OVERRIDES below.
+-- Load order matters: later writes win, Ambxst loads last so its theme beats
+-- ours, and OVERRIDES beats Ambxst.
 
--- Internal helpers (HOME, is_file_exists, workspace_in_group)
-require("hyprland.lib")
-
--- Environment variables
-require("hyprland.env")
 require("custom.env")
-
--- Defaults
--- (hyprland/execs.lua and hyprland/keybinds.lua stay unloaded: Ambxst provides
---  the autostart and the keybinds. hyprland/services and hyprland/shellOverrides
---  are illogical-impulse shell plumbing and are unused here as well.)
-require("hyprland.general")
-require("hyprland.rules")
-require("hyprland.colors")
-
--- Custom
-require("custom.execs")
 require("custom.general")
+require("custom.execs")
 require("custom.rules")
 require("custom.keybinds")
-
--- Monitors and workspaces (monitors.lua is rewritten by set-primary-monitor)
-require("workspaces")
-require("monitors")
+require("monitors")   -- rewritten by set-primary-monitor
 
 -- Ambxst
 loadfile(os.getenv("HOME") .. "/.local/share/ambxst/hyprland.lua")()

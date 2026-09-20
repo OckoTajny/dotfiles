@@ -4,9 +4,9 @@ gui:
   sidePanelWidth: 0.3
   showCommandLog: false
 git:
-  paging:
-    colorArg: always
-    pager: ""
+  diffRenderers:
+    - colorArg: always
+      type: rawGit
   commit:
     signOff: false
   autoFetch: true
