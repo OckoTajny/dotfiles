@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Axenide/Ambxst/dev/docs/mods/manifest.schema.json",
+  "manifestVersion": 1,
+  "id": "ocko.launcher-tap-debounce",
+  "name": "Launcher tap debounce",
+  "version": "1.0.0",
+  "description": "Swallows the duplicate launcher toggle a Super tap produces under Hyprland's Lua config provider (open+close within a few ms = flicker).",
+  "license": "MIT",
+  "author": "ocko",
+  "compatibility": {
+    "api": 1,
+    "ambxst": ">=1.3.6",
+    "testedBaseCommits": ["8de8cd4b0e725984cb6e618b2b1028a2fdef2113"]
+  },
+  "permissions": [],
+  "operations": [
+    { "type": "patch", "source": "patches/launcher-tap-debounce.patch" }
+  ]
+}

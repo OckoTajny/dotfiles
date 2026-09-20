@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "mods": [
+    {
+      "id": "ocko.launcher-tap-debounce",
+      "enabled": true,
+      "order": 0,
+      "source": "/home/ocko/.local/share/chezmoi-ambxst/dot_local/share/ambxst/mods/launcher-tap-debounce",
+      "sourceType": "local",
+      "installedAt": "2026-09-19T08:53:51Z"
+    }
+  ],
+  "activeGeneration": "20260919T085352Z-0446b5ea"
+}

@@ -1,0 +1,12 @@
+gui:
+  nerdFontsVersion: "3"
+  showFileTree: true
+  sidePanelWidth: 0.3
+  showCommandLog: false
+git:
+  diffRenderers:
+    - colorArg: always
+      type: rawGit
+  commit:
+    signOff: false
+  autoFetch: true
