@@ -1,32 +1,50 @@
 // niri config — Ambxst-driven. Bar, launcher, wallpaper, lock, notifications
 // all come from Ambxst (included below via `ambxst install niri`).
-// Old waybar/vicinae config: ~/.dotfiles-sevens (saatvik333/niri-dotfiles).
 //
 // Binds mirror ~/.config/hypr/custom/keybinds.lua + hyprland.lua OVERRIDES.
 // The Ambxst include comes FIRST: niri `binds` are positional, later wins,
 // so everything below beats Ambxst's generated defaults.
+//
+// PATH is not set here (niri can't expand ~ / $HOME): SDDM's wayland-session
+// sources ~/.profile, which already puts ~/.local/bin first, so the
+// spawn-at-startup "ambxst" from ambxst's niri.kdl hits the single-instance
+// guard wrapper rather than the raw /usr/local/bin binary.
 
-// ~/.local/bin first so spawn-at-startup "ambxst" (from ambxst's niri.kdl)
-// hits the single-instance guard wrapper, not the raw /usr/local/bin binary.
 environment {
-    PATH "/home/ocko/.local/bin:/usr/local/bin:/usr/bin:/bin"
     ELECTRON_OZONE_PLATFORM_HINT "auto"
     QT_QPA_PLATFORM "wayland;xcb"
-    XCURSOR_THEME "Bibata-Modern-Classic"
+    XCURSOR_THEME "Bibata-Modern-Ice"
     XCURSOR_SIZE "24"
 }
 
-spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+// Polkit agent: first one present wins (desktop has polkit-kde, laptop polkit-gnome)
+spawn-sh-at-startup "for a in /usr/lib/polkit-kde-authentication-agent-1 /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 /usr/libexec/polkit-gnome-authentication-agent-1; do [ -x \"$a\" ] && exec \"$a\"; done"
 spawn-sh-at-startup "~/.local/bin/boot-update-prompt"
 // Start on Czech (index 1); us stays first so binds resolve layout-independently
 spawn-sh-at-startup "sleep 1; niri msg action switch-layout 1"
 
 prefer-no-csd
-screenshot-path "~/Pictures/Screenshots/%Y-%m-%d %H-%M-%S.png"
+screenshot-path "~/Pictures/Screenshots/Screenshot_%Y-%m-%d_%H.%M.%S.png"
 
+// Outputs: every machine's monitors are listed, niri ignores the absent ones.
+// Desktop: DP-2 (MSI 1440p/180) primary at 0,0; DP-3 (Philips 1080p/165) to
+// the right, vertically centred ((1440-1080)/2 = 180). Laptop: eDP-1 + DP-1.
+output "DP-2" {
+    mode "2560x1440@180"
+    position x=0 y=0
+    variable-refresh-rate
+}
+output "DP-3" {
+    mode "1920x1080@165"
+    position x=2560 y=180
+}
+output "DP-1" {
+    mode "1920x1080@165"
+    position x=2560 y=180
+}
 output "eDP-1" {
-    mode "1920x1080@60.024"
-    scale 1
+    mode "1920x1080@60"
+    position x=0 y=0
 }
 
 input {
@@ -56,7 +74,7 @@ hotkey-overlay {
 }
 
 cursor {
-    xcursor-theme "Bibata-Modern-Classic"
+    xcursor-theme "Bibata-Modern-Ice"
     xcursor-size 24
     hide-when-typing
     hide-after-inactive-ms 5000
@@ -105,6 +123,7 @@ binds {
 
     // ---- Window
     Mod+Q            { close-window; }
+    Mod+MouseMiddle  { close-window; }
     Alt+F4           { close-window; }
     Mod+F            { maximize-column; }
     Mod+Shift+F      { fullscreen-window; }
@@ -118,15 +137,15 @@ binds {
     Mod+Space        { spawn-sh "~/.local/bin/kb-toggle"; }                       // us <-> cz + notify
     Mod+P            { spawn-sh "~/.local/bin/sudo-passwd-toggle"; }
 
-    // ---- dotswap
+    // ---- dotswap (only niri <-> ambxst make sense inside a niri session)
     Ctrl+Mod+P            { spawn-sh "~/.local/bin/dotswap use win11 && ~/.local/bin/dotswap-postapply win11"; }
     Ctrl+Shift+Mod+Right  { spawn-sh "~/.local/bin/dotswap-cycle next"; }
     Ctrl+Shift+Mod+Left   { spawn-sh "~/.local/bin/dotswap-cycle prev"; }
 
-    // ---- Screenshots
+    // ---- Screenshots (Print = Ambxst region UI, Ctrl = screen to file, Shift = screen to clipboard)
     Print            { spawn "ambxst" "run" "screenshot"; }
-    Shift+Print      { screenshot-screen; }
-    Ctrl+Print       { screenshot-window; }
+    Ctrl+Print       { screenshot-screen; }
+    Shift+Print      { screenshot-screen write-to-disk=false; }
 
     // ---- Workspaces: Ctrl+Alt+N move (cz muscle memory) + numpad
     Ctrl+Alt+1 { move-window-to-workspace 1; }
