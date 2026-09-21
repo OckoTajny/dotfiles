@@ -19,7 +19,7 @@
   "hoverToReveal": true,
   "hoverRegionHeight": 8,
   "showPinButton": true,
-  "availableOnFullscreen": true,
+  "availableOnFullscreen": false,
   "use12hFormat": false,
   "containBar": false,
   "keepBarShadow": false,
