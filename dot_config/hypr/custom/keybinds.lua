@@ -89,7 +89,7 @@ hl.bind("SUPER + code:29", hl.dsp.exec_cmd(bin .. "voice-to-text"))
 -- Accurate model (better Czech, slower) — code:52 = Z on us / Y on cz
 hl.bind("SUPER + SHIFT + code:52", hl.dsp.exec_cmd(bin .. "voice-to-text large-v3-turbo"))
 
-hl.bind("SUPER + Space", hl.dsp.exec_cmd(bin .. "kb-toggle"))            -- Keyboard layout toggle (us <-> cz)
+hl.bind("CTRL + SUPER + Space", hl.dsp.exec_cmd(bin .. "kb-toggle"))     -- Keyboard layout toggle (us <-> cz); SUPER+Space = Ambxst toggle floating
 hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd(bin .. "set-primary-monitor")) -- Pick the primary monitor (0,0)
 hl.bind("SUPER + P", hl.dsp.exec_cmd(bin .. "sudo-passwd-toggle"))       -- Toggle passwordless sudo
 hl.bind("SUPER + SHIFT + T", hl.dsp.exec_cmd("ambxst run tools"))        -- Ambxst tools panel (also Super+Shift+V)
