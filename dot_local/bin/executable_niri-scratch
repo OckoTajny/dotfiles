@@ -17,20 +17,29 @@ alive=$(jq -r '.[].id' <<<"$windows")
 ids=$(grep -Fxf <(echo "$alive") "$STATE" || true)
 printf '%s\n' $ids > "$STATE"
 
+# Hidden home for scratch windows: a named workspace kept as the LAST one on the
+# focused output so it never shifts Mod+N numbering (niri has no true special ws).
 scratch_ws() {
-    local name; name=$(jq -r '.[] | select(.name=="scratch") | .idx' <<<"$workspaces")
-    [ -n "$name" ] && { echo scratch; return; }
-    # no scratch ws yet: name the trailing empty workspace on the focused output
     local out last
     out=$(jq -r '.[] | select(.is_focused) | .output' <<<"$workspaces")
     last=$(jq -r --arg o "$out" '[.[] | select(.output==$o)] | max_by(.idx) | .idx' <<<"$workspaces")
-    niri msg action set-workspace-name --workspace "$last" scratch
+    if ! jq -e '.[] | select(.name=="scratch")' <<<"$workspaces" >/dev/null; then
+        niri msg action set-workspace-name --workspace "$last" scratch   # trailing empty ws
+    else
+        niri msg action move-workspace-to-index --reference scratch "$last"
+    fi
     echo scratch
 }
 
-hide() { for id in $ids; do niri msg action move-window-to-workspace --window-id "$id" --focus false "$(scratch_ws)"; done; }
+hide() {
+    local ws; ws=$(scratch_ws)
+    for id in $ids; do niri msg action move-window-to-workspace --window-id "$id" --focus false "$ws"; done
+}
 show() {
-    for id in $ids; do niri msg action move-window-to-workspace --window-id "$id" --focus false "$focused_ws"; done
+    for id in $ids; do
+        niri msg action move-window-to-floating --id "$id"     # never insert as a tiled column
+        niri msg action move-window-to-workspace --window-id "$id" --focus false "$focused_ws"
+    done
     niri msg action focus-window --id "${ids%%$'\n'*}"
 }
 
