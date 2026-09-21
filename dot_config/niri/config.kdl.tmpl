@@ -5,15 +5,18 @@
 // The Ambxst include comes FIRST: niri `binds` are positional, later wins,
 // so everything below beats Ambxst's generated defaults.
 //
-// PATH is not set here (niri can't expand ~ / $HOME): SDDM's wayland-session
-// sources ~/.profile, which already puts ~/.local/bin first, so the
-// spawn-at-startup "ambxst" from ambxst's niri.kdl hits the single-instance
-// guard wrapper rather than the raw /usr/local/bin binary.
+// chezmoi template (config.kdl.tmpl): niri can't expand ~/$HOME, so the
+// home dir and the per-machine cursor are filled in by chezmoi. ~/.local/bin
+// goes first so spawn-at-startup "ambxst" (from ambxst's niri.kdl) hits the
+// single-instance guard wrapper, not the raw /usr/local/bin binary. Needed on
+// the laptop (GDM + systemd session never sources ~/.profile).
+{{- $cursor := "Bibata-Modern-Ice" }}{{ if eq .chezmoi.username "ocko" }}{{ $cursor = "Bibata-Modern-Classic" }}{{ end }}
 
 environment {
+    PATH "{{ .chezmoi.homeDir }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
     ELECTRON_OZONE_PLATFORM_HINT "auto"
     QT_QPA_PLATFORM "wayland;xcb"
-    XCURSOR_THEME "Bibata-Modern-Ice"
+    XCURSOR_THEME "{{ $cursor }}"
     XCURSOR_SIZE "24"
 }
 
@@ -75,7 +78,7 @@ hotkey-overlay {
 }
 
 cursor {
-    xcursor-theme "Bibata-Modern-Ice"
+    xcursor-theme "{{ $cursor }}"
     xcursor-size 24
     hide-when-typing
     hide-after-inactive-ms 5000
