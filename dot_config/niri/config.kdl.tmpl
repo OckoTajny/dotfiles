@@ -35,12 +35,12 @@ screenshot-path "~/Pictures/Screenshots/Screenshot_%Y-%m-%d_%H.%M.%S.png"
 output "DP-2" {
     mode "2560x1440@180"
     position x=0 y=0
-    variable-refresh-rate
+    variable-refresh-rate on-demand=true   // VRR only for windows that ask (games); always-on kills desktop animations
 }
 output "DP-3" {
     mode "1920x1080@165.003"
     position x=2560 y=180
-    variable-refresh-rate
+    variable-refresh-rate on-demand=true   // VRR only for windows that ask (games); always-on kills desktop animations
 }
 output "DP-1" {
     mode "1920x1080@165.003"
@@ -103,6 +103,7 @@ window-rule {
 window-rule {
     match app-id="^(cs2|steam_app_\\d+)$"
     open-fullscreen true
+    variable-refresh-rate true
 }
 
 // Ambxst (bar, theme, default binds). Must stay ABOVE the binds block.
