@@ -152,6 +152,12 @@ binds {
     Shift+Print      { screenshot-screen write-to-disk=false; }
 
     // ---- Workspaces: Ctrl+Alt+N move (cz muscle memory) + numpad
+    // cz layout: key 1 = "plus", an ASCII keysym, so niri matches it directly and
+    // never falls back to the us layout (2..0 = ě š č... do). Mirror Mod+1 binds.
+    Mod+Plus       { focus-workspace 1; }
+    Mod+Shift+Plus { move-window-to-workspace 1; }
+    Mod+Alt+Plus   { move-window-to-workspace 1 focus=false; }
+    Ctrl+Alt+Plus  { move-window-to-workspace 1; }
     Ctrl+Alt+1 { move-window-to-workspace 1; }
     Ctrl+Alt+2 { move-window-to-workspace 2; }
     Ctrl+Alt+3 { move-window-to-workspace 3; }
