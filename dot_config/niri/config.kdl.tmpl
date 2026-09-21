@@ -204,6 +204,18 @@ binds {
     // Scroll-wheel workspace switch (Hyprland Super+mouse_down/up)
     Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
     Mod+WheelScrollUp   cooldown-ms=150 { focus-workspace-up; }
+    // Mouse stand-ins for niri touchpad gestures (desktop has no touchpad):
+    // 3-finger horizontal swipe = column scroll, 4-finger vertical = overview.
+    Mod+Shift+WheelScrollDown cooldown-ms=150 { focus-column-right; }
+    Mod+Shift+WheelScrollUp   cooldown-ms=150 { focus-column-left; }
+    Mod+WheelScrollRight      cooldown-ms=150 { focus-column-right; }   // tilt wheel
+    Mod+WheelScrollLeft       cooldown-ms=150 { focus-column-left; }
+    Mod+Ctrl+WheelScrollDown  cooldown-ms=150 { move-column-right; }
+    Mod+Ctrl+WheelScrollUp    cooldown-ms=150 { move-column-left; }
+    Mod+Ctrl+Shift+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Ctrl+Shift+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+MouseForward { toggle-overview; }            // side button = 4-finger swipe
+    Mod+MouseBack    { focus-workspace-previous; }
 }
 
 // OVERRIDES
