@@ -9,7 +9,7 @@
   "hoverRegionHeight": 16,
   "pinnedOnStartup": false,
   "hoverToReveal": true,
-  "availableOnFullscreen": true,
+  "availableOnFullscreen": false,
   "showRunningIndicators": true,
   "showPinButton": true,
   "showOverviewButton": true,
