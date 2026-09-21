@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Hyprland-style scratchpad for niri. Tagged windows live floating on a hidden
+# named workspace "scratch"; toggle pulls them onto the current workspace and back.
+#   niri-scratch add     -> tag focused window (floating) and hide it   (Super+Alt+S)
+#   niri-scratch toggle  -> show/hide all tagged windows                (Super+S)
+# ponytail: window ids in a flat file, one scratch group; per-app groups if ever needed.
+set -u
+STATE=${XDG_RUNTIME_DIR:-/run/user/$UID}/niri-scratch
+touch "$STATE"
+
+windows=$(niri msg -j windows)
+workspaces=$(niri msg -j workspaces)
+focused_ws=$(jq -r '.[] | select(.is_focused) | .id' <<<"$workspaces")
+
+# prune ids of closed windows
+alive=$(jq -r '.[].id' <<<"$windows")
+ids=$(grep -Fxf <(echo "$alive") "$STATE" || true)
+printf '%s\n' $ids > "$STATE"
+
+scratch_ws() {
+    local name; name=$(jq -r '.[] | select(.name=="scratch") | .idx' <<<"$workspaces")
+    [ -n "$name" ] && { echo scratch; return; }
+    # no scratch ws yet: name the trailing empty workspace on the focused output
+    local out last
+    out=$(jq -r '.[] | select(.is_focused) | .output' <<<"$workspaces")
+    last=$(jq -r --arg o "$out" '[.[] | select(.output==$o)] | max_by(.idx) | .idx' <<<"$workspaces")
+    niri msg action set-workspace-name --workspace "$last" scratch
+    echo scratch
+}
+
+hide() { for id in $ids; do niri msg action move-window-to-workspace --window-id "$id" --focus false "$(scratch_ws)"; done; }
+show() {
+    for id in $ids; do niri msg action move-window-to-workspace --window-id "$id" --focus false "$focused_ws"; done
+    niri msg action focus-window --id "${ids%%$'\n'*}"
+}
+
+case "${1:-toggle}" in
+    add)
+        id=$(jq -r '.[] | select(.is_focused) | .id' <<<"$windows")
+        [ -z "$id" ] && exit 1
+        grep -qx "$id" "$STATE" || echo "$id" >> "$STATE"
+        ids=$(cat "$STATE")
+        niri msg action move-window-to-floating --id "$id"
+        hide
+        ;;
+    toggle)
+        [ -z "$ids" ] && { notify-send -a niri-scratch "Scratchpad empty" "Super+Alt+S sends a window there"; exit 0; }
+        visible=$(jq -r --argjson ws "$focused_ws" '.[] | select(.workspace_id==$ws) | .id' <<<"$windows" | grep -Fxf "$STATE" || true)
+        if [ -n "$visible" ]; then hide; else show; fi
+        ;;
+    *) echo "usage: niri-scratch add|toggle" >&2; exit 2 ;;
+esac
