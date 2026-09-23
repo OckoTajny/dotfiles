@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Restart the Ambxst shell when quickshell's own RSS runs away.
+#
+# The service cgroup is NOT a useful signal: apps started from the Ambxst
+# launcher are spawned with setsid and stay inside ambxst.service, so a game
+# alone accounts for several GB. Only the `qs` process is measured here.
+#
+# Restarting the service kills everything in that cgroup, so the threshold is
+# set well above a healthy shell (~500 MB) to avoid taking apps down with it.
+
+THRESHOLD_MB=${AMBXST_WATCHDOG_MB:-2500}
+
+pid=$(pgrep -x qs | head -1)
+[ -n "$pid" ] || exit 0
+
+rss_mb=$(( $(awk '/^VmRSS:/ {print $2}' "/proc/$pid/status" 2>/dev/null || echo 0) / 1024 ))
+[ "$rss_mb" -gt 0 ] || exit 0
+
+if [ "$rss_mb" -ge "$THRESHOLD_MB" ]; then
+	echo "quickshell RSS ${rss_mb}MB >= ${THRESHOLD_MB}MB, restarting ambxst.service"
+	notify-send -u critical "Ambxst" "Shell used ${rss_mb} MB, restarting it" 2>/dev/null || true
+	systemctl --user restart ambxst.service
+else
+	echo "quickshell RSS ${rss_mb}MB, below ${THRESHOLD_MB}MB"
+fi

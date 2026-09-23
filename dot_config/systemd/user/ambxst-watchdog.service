@@ -1,0 +1,7 @@
+[Unit]
+Description=Restart the Ambxst shell if quickshell leaks memory
+ConditionPathExists=%h/.local/bin/ambxst-watchdog
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/ambxst-watchdog
