@@ -18,6 +18,8 @@ environment {
     QT_QPA_PLATFORM "wayland;xcb"
     XCURSOR_THEME "{{ $cursor }}"
     XCURSOR_SIZE "24"
+    // Java AWT (Ghidra etc.) renders blank grey windows under non-reparenting WMs
+    _JAVA_AWT_WM_NONREPARENTING "1"
 }
 
 // Polkit agent: first one present wins (desktop has polkit-kde, laptop polkit-gnome)
