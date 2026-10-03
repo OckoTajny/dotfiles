@@ -116,13 +116,13 @@ binds {
     Mod+Shift+E      { quit; }
     Ctrl+Mod+Slash   { spawn-sh "xdg-open ~/.config/niri/config.kdl"; }
 
-    // ---- Apps (Super+C/I = IDEA, overrides Ambxst's Mod+C close-window)
+    // ---- Apps (Super+C = Zed, Super+I = IDEA, overrides Ambxst's Mod+C close-window)
     Mod+Return hotkey-overlay-title="Terminal + brrtfetch" { spawn-sh "kitty -e brrtfetch -width 50 -height 50 -info \"fastfetch --logo-type none --color-keys magenta --color-title magenta\" ~/brrtfetch/gifs/distro/linux/arch-purple-glitch-transparent.gif"; }
     Mod+T            { spawn "kitty"; }                       // beats Ambxst tmux selector
     Ctrl+Alt+T       { spawn "kitty"; }
     Mod+E            { spawn "nautilus"; }
     Mod+W            { spawn "zen-browser"; }
-    Mod+C            { spawn-sh "~/.local/share/JetBrains/Toolbox/scripts/idea"; }
+    Mod+C            { spawn-sh "~/.local/bin/zed"; }
     Mod+I            { spawn-sh "~/.local/share/JetBrains/Toolbox/scripts/idea"; }
     Mod+O            { spawn "flatpak" "run" "org.onlyoffice.desktopeditors"; }
     Mod+B            { spawn "kitty" "-e" "btop"; }
