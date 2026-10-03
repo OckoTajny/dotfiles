@@ -24,7 +24,7 @@ end
 -------------------
 -- IntelliJ IDEA
 local idea_cmd = home .. "/.local/share/JetBrains/Toolbox/scripts/idea"
-hl.bind("SUPER + C", hl.dsp.exec_cmd(idea_cmd))
+hl.bind("SUPER + C", hl.dsp.exec_cmd(home .. "/.local/bin/zed")) -- Zed
 hl.bind("SUPER + I", hl.dsp.exec_cmd(idea_cmd))
 
 -- OnlyOffice
