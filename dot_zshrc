@@ -125,3 +125,6 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # Added by Antigravity CLI installer
 export PATH="/home/jachym/.local/bin:$PATH"
+
+# zoxide (must stay last; cd = smart cd, same as fish)
+command -v zoxide >/dev/null && eval "$(zoxide init zsh --cmd cd)"
