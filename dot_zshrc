@@ -121,3 +121,6 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 
 # rustup toolchain ahead of pacman rust in /usr/bin
 export PATH="$HOME/.cargo/bin:$PATH"
+
+# zoxide (must stay last; cd = smart cd, same as fish)
+command -v zoxide >/dev/null && eval "$(zoxide init zsh --cmd cd)"
