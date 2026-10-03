@@ -60,7 +60,7 @@ hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/opacit
 --------------
 ---- Apps ----
 --------------
-hl.bind("SUPER + C", hl.dsp.exec_cmd(home .. "/.local/share/JetBrains/Toolbox/scripts/idea")) -- IntelliJ IDEA
+hl.bind("SUPER + C", hl.dsp.exec_cmd(home .. "/.local/bin/zed")) -- Zed
 hl.bind("SUPER + I", hl.dsp.exec_cmd(home .. "/.local/share/JetBrains/Toolbox/scripts/idea")) -- IntelliJ IDEA
 hl.bind("SUPER + O", hl.dsp.exec_cmd("flatpak run org.onlyoffice.desktopeditors"))            -- OnlyOffice
 
