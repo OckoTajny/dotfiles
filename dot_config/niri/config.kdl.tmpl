@@ -31,6 +31,22 @@ spawn-sh-at-startup "sleep 1; niri msg action switch-layout 1"
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot_%Y-%m-%d_%H.%M.%S.png"
 
+// Lid: never let the laptop end up with zero outputs. When niri drops eDP-1
+// on lid close and nothing else is connected, Qt (Ambxst/quickshell) falls
+// back to a placeholder screen and segfaults when eDP-1 comes back, and if
+// the session was locked, that leaves niri's red "lock client died" screen.
+// So keep the panel connected; turn it off only when an external monitor
+// takes over, otherwise just blank it (DPMS keeps the wl_output alive).
+// ponytail: undocking while the lid is closed still leaves eDP-1 off with no
+// outputs; reopening the lid fixes it.
+debug {
+    keep-laptop-panel-on-when-lid-is-closed
+}
+switch-events {
+    lid-close { spawn "sh" "-c" "if [ \"$(niri msg outputs | grep -c '^Output')\" -gt 1 ]; then niri msg output eDP-1 off; else niri msg action power-off-monitors; fi"; }
+    lid-open { spawn "sh" "-c" "niri msg output eDP-1 on; niri msg action power-on-monitors"; }
+}
+
 // Outputs: every machine's monitors are listed, niri ignores the absent ones.
 // Desktop: DP-2 (MSI 1440p/180) primary at 0,0; DP-3 (Philips 1080p/165) to
 // the right, vertically centred ((1440-1080)/2 = 180). Laptop: eDP-1 + DP-1.
@@ -49,7 +65,7 @@ output "DP-1" {
     position x=2560 y=180
 }
 output "eDP-1" {
-    mode "1920x1080@60"
+    mode "1920x1080@60.001"
     position x=0 y=0
 }
 
