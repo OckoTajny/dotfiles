@@ -19,8 +19,8 @@
             },
             {
                 "timeout": 330,
-                "onTimeout": "ambxst screen off",
-                "onResume": "ambxst screen on"
+                "onTimeout": "niri msg action power-off-monitors 2>/dev/null || ambxst screen off",
+                "onResume": "niri msg action power-on-monitors 2>/dev/null || ambxst screen on"
             },
             {
                 "timeout": 1800,
