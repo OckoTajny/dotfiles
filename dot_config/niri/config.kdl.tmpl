@@ -24,7 +24,6 @@ environment {
 
 // Polkit agent: first one present wins (desktop has polkit-kde, laptop polkit-gnome)
 spawn-sh-at-startup "for a in /usr/lib/polkit-kde-authentication-agent-1 /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 /usr/libexec/polkit-gnome-authentication-agent-1; do [ -x \"$a\" ] && exec \"$a\"; done"
-spawn-sh-at-startup "~/.local/bin/boot-update-prompt"
 // Start on Czech (index 1); us stays first so binds resolve layout-independently
 spawn-sh-at-startup "sleep 1; niri msg action switch-layout 1"
 
@@ -105,13 +104,6 @@ cursor {
     hide-after-inactive-ms 5000
 }
 
-// Boot update prompt: floating, centred (mirrors hypr custom/rules.lua)
-window-rule {
-    match app-id="^update-prompt$"
-    open-floating true
-    default-column-width { fixed 640; }
-    default-window-height { fixed 420; }
-}
 // JetBrains: no initial focus on the empty splash/popup windows
 window-rule {
     match app-id="^jetbrains-" title="^(|\\s|win\\d+)$"
