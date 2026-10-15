@@ -49,14 +49,6 @@ hl.window_rule({
     float = true,
 })
 
--- Boot update prompt: floating centred window
-hl.window_rule({
-    match  = { class = "update-prompt" },
-    float  = true,
-    center = true,
-    size   = "640 420",
-})
-
 -- Fix JetBrains IDE focus/rerendering problem
 hl.window_rule({
     match            = { class = "^jetbrains-.*$", float = true, title = "^$|^\\s$|^win\\d+$" },

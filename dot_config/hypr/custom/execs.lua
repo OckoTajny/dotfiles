@@ -9,7 +9,4 @@ hl.on("hyprland.start", function()
 
     -- The Ambxst shell starts itself from ~/.local/share/ambxst/hyprland.lua
     -- (loaded by the root hyprland.lua). Don't add it here — duplicate shell.
-
-    -- Ask about system updates on every boot (yes -> yay -Syu --noconfirm)
-    hl.exec_cmd(home .. "/.local/bin/boot-update-prompt")
 end)
