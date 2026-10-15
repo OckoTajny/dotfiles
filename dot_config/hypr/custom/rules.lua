@@ -8,10 +8,3 @@
 -- Disable blur for all xwayland apps:
 -- hl.window_rule({ match = { xwayland = true }, no_blur = true })
 
--- Boot update prompt: floating centred window
-hl.window_rule({
-    match  = { class = "update-prompt" },
-    float  = true,
-    center = true,
-    size   = "640 420",
-})
