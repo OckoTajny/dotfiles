@@ -22,7 +22,6 @@ hl.on("hyprland.start", function()
 
     hl.exec_cmd("awww-daemon")
     hl.exec_cmd("qs -d -c volume-osd")
-    hl.exec_cmd("~/.local/bin/boot-update-prompt")
 
     -- Start on the Czech layout. kb_layout lists us first so that keysym
     -- binds resolve to the right keycodes (digits sit on the shift level in
