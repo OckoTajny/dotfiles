@@ -8,14 +8,6 @@
 -- Disable blur for all xwayland apps:
 -- hl.window_rule({ match = { xwayland = true }, no_blur = true })
 
--- Boot update prompt: floating centred window
-hl.window_rule({
-    match  = { class = "update-prompt" },
-    float  = true,
-    center = true,
-    size   = "640 420",
-})
-
 -- Pinned windows in the Ambxst accent instead of the illogical-impulse blue
 hl.window_rule({ match = { pin = true }, border_color = "rgba(ffb59eAA) rgba(ffb59e77)" })
 
