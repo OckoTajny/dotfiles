@@ -1,0 +1,5 @@
+#!/bin/sh
+# ws +1 / ws -1: go to the next/previous workspace number (creates it if empty), clamped to 1..10
+n=$(i3-msg -t get_workspaces | jq '.[] | select(.focused).num')
+t=$((n + $1)); [ "$t" -lt 1 ] && t=1; [ "$t" -gt 10 ] && t=10
+[ "$t" -ne "$n" ] && i3-msg -q workspace number "$t"
