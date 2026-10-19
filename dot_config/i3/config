@@ -11,7 +11,7 @@ client.unfocused        #000000 #000000 #5c6370 #000000   #000000
 client.urgent           #ef596f #ef596f #000000 #ef596f   #ef596f
 default_border pixel 2
 hide_edge_borders smart
-focus_follows_mouse no
+focus_follows_mouse yes
 
 # tap Super alone = Super+D (app launcher), held Super works as usual
 exec --no-startup-id xcape -e 'Super_L=Super_L|d'
