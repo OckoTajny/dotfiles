@@ -78,7 +78,7 @@ CORE_PKGS=(hyprland niri xwayland-satellite foot fish mako btop fastfetch fuzzel
   # keybind targets: voice-to-text dictation, OCR, media, session menu, screenshots
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
   # i3 (X11) session: same binds as niri, VS Code "Hyper" colors
-  i3-wm i3status i3lock xss-lock rofi dunst maim xclip autorandr arandr xcape
+  i3-wm i3status i3lock xss-lock rofi dunst maim xclip autorandr arandr xcape touchegg
   tesseract tesseract-data-eng tesseract-data-ces bc
   # zsh (default shell – the tracked .zshrc uses oh-my-zsh)
   zsh
@@ -946,6 +946,9 @@ Exec = /usr/bin/setcap cap_perfmon=+ep /usr/bin/intel_gpu_top
 HOOK_EOF
   sudo setcap cap_perfmon=+ep /usr/bin/intel_gpu_top \
     && ok "intel_gpu_top: cap_perfmon" || warn "setcap intel_gpu_top failed"
+  # touchpad gestures in i3 (3-finger swipe = workspace); the client runs from the i3 config
+  sudo systemctl enable --now touchegg.service >/dev/null 2>&1 \
+    && ok "touchegg daemon enabled" || warn "enable touchegg.service"
 fi
 
 # 5. login screen theme (only if SDDM is the active display manager – no
