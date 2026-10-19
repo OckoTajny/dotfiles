@@ -3,7 +3,7 @@
 i3status -c ~/.config/i3/i3status.conf | {
   read -r line; echo "$line"; read -r line; echo "$line"
   sed -u 's/^,//' | jq -c --unbuffered 'map(
-      if .name == "read_file" then .color = (if (.instance | endswith("i3-gpu")) then "#d55fde" else "#d8985f" end)
-      else .color //= ({cpu_usage: "#52adf2", cpu_temperature: "#e5c07b", memory: "#2bbac5",
-                        battery: "#89ca78", tztime: "#abb2bf"}[.name] // "#abb2bf") end)' | sed -u '1!s/^/,/'
+      if .name == "read_file" then .color = (if (.instance | endswith("i3-gpu")) then "#f03cff" else "#ff8c1a" end)
+      else .color //= ({cpu_usage: "#00a8ff", cpu_temperature: "#ffd23f", memory: "#00e5ff",
+                        battery: "#3dff7a", tztime: "#d0d6e0"}[.name] // "#d0d6e0") end)' | sed -u '1!s/^/,/'
 }
