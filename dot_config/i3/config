@@ -13,8 +13,8 @@ default_border pixel 2
 hide_edge_borders smart
 focus_follows_mouse yes
 
-# tap Super alone = Super+D (app launcher), held Super works as usual
-exec --no-startup-id xcape -e 'Super_L=Super_L|d'
+# tap Super alone = Super+R (app launcher), held Super works as usual
+exec --no-startup-id xcape -e 'Super_L=Super_L|r'
 exec --no-startup-id touchegg
 exec_always --no-startup-id feh --no-fehbg --bg-fill ~/.config/i3/wall.jpg
 exec --no-startup-id dunst -config ~/.config/i3/dunstrc
@@ -29,12 +29,13 @@ bindsym $mod+i exec ~/.local/share/JetBrains/Toolbox/scripts/idea
 bindsym $mod+w exec zen-browser
 bindsym $mod+e exec nautilus
 bindsym $mod+b exec $term -e btop
-bindsym $mod+d exec $rofi -show drun
+bindsym $mod+r exec $rofi -show drun
 bindsym $mod+space exec --no-startup-id ~/.config/i3/kb
 bindsym Print exec --no-startup-id maim -s | xclip -selection clipboard -t image/png
 
 bindsym $mod+q kill
 bindsym $mod+f fullscreen toggle
+bindsym $mod+d exec --no-startup-id ~/.config/i3/max
 bindsym $mod+Shift+space floating toggle
 floating_modifier $mod
 

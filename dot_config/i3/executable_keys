@@ -5,7 +5,7 @@ awk '/^bind(sym|code)/ {
   if ($1 == "bindcode") n = substr(key, length(key) - 1) - 9; sub(/1[0-9]$/, n % 10, key)
   $1 = $2 = ""; sub(/^ +(exec (--no-startup-id )?)?/, "")
   sub(/^\$term -e nvim$/, "LazyVim"); sub(/.*Toolbox\/scripts\/idea$/, "IntelliJ IDEA"); sub(/^\$term$/, "terminal"); sub(/^\$rofi -show drun$/, "app launcher")
-  sub(/.*i3\/kb$/, "switch us / cz layout"); sub(/^maim.*/, "screenshot region to clipboard")
+  sub(/.*i3\/kb$/, "switch us / cz layout"); sub(/.*i3\/max$/, "maximize (keeps the bar)"); sub(/^maim.*/, "screenshot region to clipboard")
   sub(/^move container to output /, "move window to monitor "); sub(/; focus output.*/, ""); sub(/^focus output /, "focus monitor ")
   sub(/^move container to workspace [0-9]+; /, "move window to "); sub(/^mode "keys: space"$/, "this list (then Space)")
   printf "%-24s %s\n", key, $0
