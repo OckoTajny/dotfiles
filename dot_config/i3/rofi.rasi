@@ -1,20 +1,20 @@
 * {
   font: "JetBrainsMono Nerd Font 11";
   background-color: transparent;
-  text-color: #abb2bf;
+  text-color: #d0d6e0;
 }
-window { width: 560px; background-color: #000000; border: 2px; border-color: #52adf2; }
+window { width: 560px; background-color: #000000; border: 2px; border-color: #00a8ff; }
 mainbox { padding: 12px; spacing: 10px; }
 inputbar { children: [prompt, entry]; spacing: 8px; }
 prompt { text-color: #14fa50; }
 entry { placeholder: ""; }
 listview { lines: 8; scrollbar: false; }
 element { padding: 6px 8px; }
-element selected { background-color: #52adf2; text-color: #000000; }
-element urgent { text-color: #ef596f; }
-element selected.urgent { background-color: #ef596f; text-color: #000000; }
+element selected { background-color: #00a8ff; text-color: #000000; }
+element urgent { text-color: #ff2e56; }
+element selected.urgent { background-color: #ff2e56; text-color: #000000; }
 element-text { highlight: bold #14fa50; }
 element selected element-text { highlight: bold #000000; }
 element-text { text-color: inherit; }
-entry { text-color: #e5c07b; }
-message { text-color: #d8985f; }
+entry { text-color: #ffd23f; }
+message { text-color: #ff8c1a; }

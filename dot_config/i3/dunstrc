@@ -3,9 +3,9 @@
     origin = top-right
     offset = (10, 30)
     frame_width = 2
-    frame_color = "#52adf2"
+    frame_color = "#00a8ff"
     background = "#000000"
-    foreground = "#abb2bf"
+    foreground = "#d0d6e0"
 [urgency_critical]
-    frame_color = "#ef596f"
+    frame_color = "#ff2e56"
     timeout = 0
