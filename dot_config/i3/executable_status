@@ -1,0 +1,9 @@
+#!/bin/sh
+# i3status with a palette color per field; threshold colors (red/yellow alarms) from i3status win
+i3status -c ~/.config/i3/i3status.conf | {
+  read -r line; echo "$line"; read -r line; echo "$line"
+  sed -u 's/^,//' | jq -c --unbuffered 'map(
+      if .name == "read_file" then .color = (if (.instance | endswith("i3-gpu")) then "#d55fde" else "#d8985f" end)
+      else .color //= ({cpu_usage: "#52adf2", cpu_temperature: "#e5c07b", memory: "#2bbac5",
+                        battery: "#89ca78", tztime: "#abb2bf"}[.name] // "#abb2bf") end)' | sed -u '1!s/^/,/'
+}
