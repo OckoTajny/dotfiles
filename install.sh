@@ -77,6 +77,8 @@ CORE_PKGS=(hyprland niri xwayland-satellite foot fish mako btop fastfetch fuzzel
   wl-clipboard slurp grim swappy cliphist dart-sass dconf hyprpicker brightnessctl jq
   # keybind targets: voice-to-text dictation, OCR, media, session menu, screenshots
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
+  # i3 (X11) session: same binds as niri, VS Code "Hyper" colors
+  i3-wm i3status i3lock xss-lock rofi dunst maim xclip autorandr arandr
   tesseract tesseract-data-eng tesseract-data-ces bc
   # zsh (default shell – the tracked .zshrc uses oh-my-zsh)
   zsh

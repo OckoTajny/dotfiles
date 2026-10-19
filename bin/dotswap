@@ -10,7 +10,7 @@ SRC_BASE="$HOME/.local/share"
 TRACKED_CONFIG_DIRS=(
   alacritty ambxst btop cava fastfetch fish foot fuzzel hypr
   illogical-impulse kde-material-you-colors kitty lazygit mako matugen niri
-  nvim quickshell rofi waybar wlogout
+  i3 nvim quickshell rofi waybar wlogout
   # Sublime: only the user settings/keymap – Installed Packages are binaries
   # that Package Control re-fetches from the installed_packages list anyway
   sublime-text/Packages/User
