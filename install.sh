@@ -156,7 +156,7 @@ banner() {
 }
 
 step=0
-say()  { step=$((step+1)); printf '\n%s[%s%d%s/7]%s %s%s%s\n' \
+say()  { step=$((step+1)); printf '\n%s[%s%d%s/9]%s %s%s%s\n' \
           "$DIM" "$CYN" "$step" "$DIM" "$R" "$B" "$1" "$R"; }
 ok()   { printf '   %s✓%s %s\n' "$GRN" "$R" "$1"; }
 warn() { printf '   %s⚠%s  %s\n' "$YEL" "$R" "$1"; }
@@ -358,6 +358,7 @@ run_uninstall() {
     /usr/local/bin/sudo-nopasswd-toggle >/dev/null 2>&1 \
     && ok "removed sudo toggle helper (password prompt restored)" \
     || warn "could not remove sudo toggle helper – check /etc/sudoers.d"
+  sudo rm -f /etc/pacman.d/hooks/intel-gpu-top-perfmon.hook >/dev/null 2>&1
   for p in "${PROFILES[@]}"; do
     rm -rf "${SRC_BASE:?}/chezmoi-$p"
   done
@@ -915,6 +916,36 @@ HELPER_EOF
     warn "could not install sudo helper – Super+P will report 'Helper selhal'"
   fi
   rm -f "$helper_tmp" "$rule_tmp"
+fi
+
+# 4c. i3 bar GPU load ------------------------------------------------------------
+# The i3 bar reads Intel GPU busy % and watts from intel_gpu_top, which needs
+# the perf PMU. Grant only cap_perfmon to that one binary (no sudo, no global
+# perf_event_paranoid change), and keep it across upgrades with a pacman hook.
+# Non-Intel GPUs: intel_gpu_top just exits and the bar hides the field.
+say "i3 bar GPU monitor (intel_gpu_top cap_perfmon)"
+GPU_HOOK=/etc/pacman.d/hooks/intel-gpu-top-perfmon.hook
+if [ "$MODE" = doctor ]; then
+  getcap /usr/bin/intel_gpu_top 2>/dev/null | grep -q cap_perfmon \
+    && ok "intel_gpu_top has cap_perfmon" || warn "intel_gpu_top lacks cap_perfmon"
+else
+  sudo pacman -S --needed --noconfirm intel-gpu-tools >/dev/null 2>&1 || warn "install intel-gpu-tools"
+  sudo mkdir -p /etc/pacman.d/hooks
+  sudo tee "$GPU_HOOK" >/dev/null <<'HOOK_EOF'
+# Re-grant cap_perfmon after intel-gpu-tools upgrades, so the i3 bar can read GPU load without root
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = intel-gpu-tools
+
+[Action]
+Description = Granting cap_perfmon to intel_gpu_top
+When = PostTransaction
+Exec = /usr/bin/setcap cap_perfmon=+ep /usr/bin/intel_gpu_top
+HOOK_EOF
+  sudo setcap cap_perfmon=+ep /usr/bin/intel_gpu_top \
+    && ok "intel_gpu_top: cap_perfmon" || warn "setcap intel_gpu_top failed"
 fi
 
 # 5. login screen theme (only if SDDM is the active display manager – no
