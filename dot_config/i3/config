@@ -1,0 +1,92 @@
+# Simple i3, colors from VS Code "Hyper" theme, binds mirror niri
+set $mod Mod4
+set $term kitty -c ~/.config/kitty/kitty.conf -c ~/.config/i3/kitty.conf
+set $rofi rofi -theme ~/.config/i3/rofi.rasi
+font pango:JetBrainsMono Nerd Font Bold 10
+
+#                       border  bg      text    indicator child_border
+client.focused          #52adf2 #52adf2 #000000 #14fa50   #52adf2
+client.focused_inactive #2c313a #2c313a #abb2bf #2c313a   #2c313a
+client.unfocused        #000000 #000000 #5c6370 #000000   #000000
+client.urgent           #ef596f #ef596f #000000 #ef596f   #ef596f
+default_border pixel 2
+hide_edge_borders smart
+focus_follows_mouse no
+
+exec --no-startup-id dunst -config ~/.config/i3/dunstrc
+exec --no-startup-id nm-applet
+exec --no-startup-id xss-lock -- i3lock -n -c 000000
+
+bindsym $mod+Return exec $term
+bindsym $mod+t exec $term
+bindsym $mod+n exec $term -e nvim
+bindsym $mod+w exec zen-browser
+bindsym $mod+e exec nautilus
+bindsym $mod+space exec $rofi -show drun
+bindsym Ctrl+$mod+space exec --no-startup-id sh -c 'setxkbmap -query | grep -q "layout: *us" && setxkbmap cz || setxkbmap us'
+bindsym Print exec --no-startup-id maim -s | xclip -selection clipboard -t image/png
+
+bindsym $mod+q kill
+bindsym $mod+f fullscreen toggle
+bindsym $mod+Shift+space floating toggle
+floating_modifier $mod
+
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+bindsym Ctrl+$mod+h focus left
+bindsym Ctrl+$mod+j focus down
+bindsym Ctrl+$mod+k focus up
+bindsym Ctrl+$mod+l focus right
+bindsym $mod+Shift+h move left
+bindsym $mod+Shift+j move down
+bindsym $mod+Shift+k move up
+bindsym $mod+Shift+l move right
+
+# monitors
+bindsym Ctrl+$mod+Left focus output left
+bindsym Ctrl+$mod+Right focus output right
+bindsym Ctrl+Shift+$mod+Left move container to output left; focus output left
+bindsym Ctrl+Shift+$mod+Right move container to output right; focus output right
+
+# workspaces (keycodes, so cz layout works too)
+bindsym $mod+z workspace prev
+bindsym $mod+x workspace next
+bindcode $mod+10 workspace 1
+bindcode $mod+11 workspace 2
+bindcode $mod+12 workspace 3
+bindcode $mod+13 workspace 4
+bindcode $mod+14 workspace 5
+bindcode $mod+Shift+10 move container to workspace 1; workspace 1
+bindcode $mod+Shift+11 move container to workspace 2; workspace 2
+bindcode $mod+Shift+12 move container to workspace 3; workspace 3
+bindcode $mod+Shift+13 move container to workspace 4; workspace 4
+bindcode $mod+Shift+14 move container to workspace 5; workspace 5
+
+bindsym $mod+l exec --no-startup-id loginctl lock-session
+bindsym $mod+Shift+e exit
+bindsym $mod+Shift+r restart
+
+bar {
+    status_command i3status -c ~/.config/i3/i3status.conf
+    position top
+    tray_output primary
+    colors {
+        background #000000
+        statusline #9da5b4
+        separator  #2c313a
+        focused_workspace  #52adf2 #52adf2 #000000
+        active_workspace   #2c313a #2c313a #abb2bf
+        inactive_workspace #000000 #000000 #5c6370
+        urgent_workspace   #ef596f #ef596f #000000
+    }
+}
+
+# Super+Escape then Space: show all binds
+mode "keys: space" {
+    bindsym space exec --no-startup-id ~/.config/i3/keys, mode "default"
+    bindsym $mod+space exec --no-startup-id ~/.config/i3/keys, mode "default"
+    bindsym Escape mode "default"
+}
+bindsym $mod+Escape mode "keys: space"
