@@ -18,8 +18,8 @@ exec --no-startup-id xcape -e 'Super_L=Super_L|r'
 exec --no-startup-id touchegg
 # wallpaper: ~/Pictures/Wallpapers/i3.jpg if present (downloaded, not in the repo), else the bundled one
 exec_always --no-startup-id feh --no-fehbg --bg-fill ~/Pictures/Wallpapers/i3.jpg || feh --no-fehbg --bg-fill ~/.config/i3/wall.jpg
-# compositor only for VSync (no tearing when scrolling); no shadows or effects
-exec --no-startup-id picom --backend glx --vsync
+# compositor only for VSync (no tearing when scrolling); /dev/null config skips /etc/xdg/picom.conf (fades, shadows)
+exec --no-startup-id picom --config /dev/null --backend glx --vsync
 exec --no-startup-id dunst -config ~/.config/i3/dunstrc
 exec --no-startup-id nm-applet
 exec --no-startup-id xss-lock -- i3lock -n -c 000000
