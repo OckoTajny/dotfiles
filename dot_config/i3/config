@@ -52,6 +52,14 @@ bindsym $mod+Shift+j move down
 bindsym $mod+Shift+k move up
 bindsym $mod+Shift+l move right
 
+# scrolling like niri: Super+scroll = workspace, Super+sideways scroll or Super+Shift+scroll = window
+bindsym --whole-window $mod+button4 exec --no-startup-id ~/.config/i3/cooldown ~/.config/i3/ws -1
+bindsym --whole-window $mod+button5 exec --no-startup-id ~/.config/i3/cooldown ~/.config/i3/ws +1
+bindsym --whole-window $mod+button6 exec --no-startup-id ~/.config/i3/cooldown i3-msg -q focus left
+bindsym --whole-window $mod+button7 exec --no-startup-id ~/.config/i3/cooldown i3-msg -q focus right
+bindsym --whole-window $mod+Shift+button4 exec --no-startup-id ~/.config/i3/cooldown i3-msg -q focus left
+bindsym --whole-window $mod+Shift+button5 exec --no-startup-id ~/.config/i3/cooldown i3-msg -q focus right
+
 # monitors
 bindsym Ctrl+$mod+Left focus output left
 bindsym Ctrl+$mod+Right focus output right
