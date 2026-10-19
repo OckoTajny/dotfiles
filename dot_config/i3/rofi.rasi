@@ -11,4 +11,10 @@ entry { placeholder: ""; }
 listview { lines: 8; scrollbar: false; }
 element { padding: 6px 8px; }
 element selected { background-color: #52adf2; text-color: #000000; }
+element urgent { text-color: #ef596f; }
+element selected.urgent { background-color: #ef596f; text-color: #000000; }
+element-text { highlight: bold #14fa50; }
+element selected element-text { highlight: bold #000000; }
 element-text { text-color: inherit; }
+entry { text-color: #e5c07b; }
+message { text-color: #d8985f; }
