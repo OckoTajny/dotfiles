@@ -358,7 +358,7 @@ run_uninstall() {
     /usr/local/bin/sudo-nopasswd-toggle >/dev/null 2>&1 \
     && ok "removed sudo toggle helper (password prompt restored)" \
     || warn "could not remove sudo toggle helper – check /etc/sudoers.d"
-  sudo rm -f /etc/pacman.d/hooks/intel-gpu-top-perfmon.hook >/dev/null 2>&1
+  sudo rm -f /etc/pacman.d/hooks/intel-gpu-top-perfmon.hook /etc/X11/xorg.conf.d/30-libinput.conf >/dev/null 2>&1
   for p in "${PROFILES[@]}"; do
     rm -rf "${SRC_BASE:?}/chezmoi-$p"
   done
@@ -946,6 +946,27 @@ Exec = /usr/bin/setcap cap_perfmon=+ep /usr/bin/intel_gpu_top
 HOOK_EOF
   sudo setcap cap_perfmon=+ep /usr/bin/intel_gpu_top \
     && ok "intel_gpu_top: cap_perfmon" || warn "setcap intel_gpu_top failed"
+  # X11 input to match niri: tap + natural scroll on the touchpad, flat (no) acceleration
+  sudo mkdir -p /etc/X11/xorg.conf.d
+  sudo tee /etc/X11/xorg.conf.d/30-libinput.conf >/dev/null <<'XORG_EOF'
+# Same feel as niri: tap to click, natural scrolling on the touchpad, no pointer acceleration anywhere
+Section "InputClass"
+    Identifier "touchpad"
+    MatchIsTouchpad "on"
+    Driver "libinput"
+    Option "Tapping" "on"
+    Option "NaturalScrolling" "true"
+    Option "AccelProfile" "flat"
+EndSection
+
+Section "InputClass"
+    Identifier "pointer"
+    MatchIsPointer "on"
+    Driver "libinput"
+    Option "AccelProfile" "flat"
+EndSection
+XORG_EOF
+  ok "X11 touchpad: tap, natural scroll, flat accel"
   # touchpad gestures in i3 (3-finger swipe = workspace); the client runs from the i3 config
   sudo systemctl enable --now touchegg.service >/dev/null 2>&1 \
     && ok "touchegg daemon enabled" || warn "enable touchegg.service"
