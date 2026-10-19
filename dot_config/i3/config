@@ -5,10 +5,10 @@ set $rofi rofi -theme ~/.config/i3/rofi.rasi
 font pango:JetBrainsMono Nerd Font Bold 10
 
 #                       border  bg      text    indicator child_border
-client.focused          #52adf2 #52adf2 #000000 #14fa50   #52adf2
-client.focused_inactive #2c313a #2c313a #abb2bf #2c313a   #2c313a
+client.focused          #00a8ff #00a8ff #000000 #14fa50   #00a8ff
+client.focused_inactive #2c313a #2c313a #d0d6e0 #2c313a   #2c313a
 client.unfocused        #000000 #000000 #5c6370 #000000   #000000
-client.urgent           #ef596f #ef596f #000000 #ef596f   #ef596f
+client.urgent           #ff2e56 #ff2e56 #000000 #ff2e56   #ff2e56
 default_border pixel 2
 hide_edge_borders smart
 focus_follows_mouse yes
@@ -94,11 +94,11 @@ bar {
         background #000000
         statusline #9da5b4
         separator  #2c313a
-        focused_workspace  #52adf2 #52adf2 #000000
-        active_workspace   #2c313a #2c313a #abb2bf
+        focused_workspace  #00a8ff #00a8ff #000000
+        active_workspace   #2c313a #2c313a #d0d6e0
         inactive_workspace #000000 #000000 #5c6370
-        urgent_workspace   #ef596f #ef596f #000000
-        binding_mode       #ef596f #ef596f #000000
+        urgent_workspace   #ff2e56 #ff2e56 #000000
+        binding_mode       #ff2e56 #ff2e56 #000000
     }
 }
 
