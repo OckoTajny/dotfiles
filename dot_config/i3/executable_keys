@@ -2,7 +2,7 @@
 # Super+Escape, Space: list every bind from the i3 config
 awk '/^bind(sym|code)/ {
   key = $2; gsub(/\$mod/, "Super", key)
-  if ($1 == "bindcode") sub(/1[0-4]$/, substr(key, length(key)) + 1, key)
+  if ($1 == "bindcode") n = substr(key, length(key) - 1) - 9; sub(/1[0-9]$/, n % 10, key)
   $1 = $2 = ""; sub(/^ +(exec (--no-startup-id )?)?/, "")
   sub(/^\$term -e nvim$/, "LazyVim"); sub(/^\$term$/, "terminal"); sub(/^\$rofi -show drun$/, "app launcher")
   sub(/^sh -c .setxkbmap.*/, "switch us / cz layout"); sub(/^maim.*/, "screenshot region to clipboard")
