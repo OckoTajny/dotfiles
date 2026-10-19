@@ -24,7 +24,8 @@ exec --no-startup-id ~/.config/i3/gpu
 
 bindsym $mod+Return exec $term
 bindsym $mod+t exec $term
-bindsym $mod+n exec $term -e nvim
+bindsym $mod+c exec $term -e nvim
+bindsym $mod+i exec ~/.local/share/JetBrains/Toolbox/scripts/idea
 bindsym $mod+w exec zen-browser
 bindsym $mod+e exec nautilus
 bindsym $mod+b exec $term -e btop
