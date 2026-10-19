@@ -13,6 +13,8 @@ default_border pixel 2
 hide_edge_borders smart
 focus_follows_mouse no
 
+# tap Super alone = Super+Space (app launcher), held Super works as usual
+exec --no-startup-id xcape -e 'Super_L=Super_L|space'
 exec --no-startup-id dunst -config ~/.config/i3/dunstrc
 exec --no-startup-id nm-applet
 exec --no-startup-id xss-lock -- i3lock -n -c 000000
