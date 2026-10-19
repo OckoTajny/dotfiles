@@ -4,7 +4,7 @@ awk '/^bind(sym|code)/ {
   key = $2; gsub(/\$mod/, "Super", key)
   if ($1 == "bindcode") n = substr(key, length(key) - 1) - 9; sub(/1[0-9]$/, n % 10, key)
   $1 = $2 = ""; sub(/^ +(exec (--no-startup-id )?)?/, "")
-  sub(/^\$term -e nvim$/, "LazyVim"); sub(/^\$term$/, "terminal"); sub(/^\$rofi -show drun$/, "app launcher")
+  sub(/^\$term -e nvim$/, "LazyVim"); sub(/.*Toolbox\/scripts\/idea$/, "IntelliJ IDEA"); sub(/^\$term$/, "terminal"); sub(/^\$rofi -show drun$/, "app launcher")
   sub(/^sh -c .setxkbmap.*/, "switch us / cz layout"); sub(/^maim.*/, "screenshot region to clipboard")
   sub(/^move container to output /, "move window to monitor "); sub(/; focus output.*/, ""); sub(/^focus output /, "focus monitor ")
   sub(/^move container to workspace [0-9]+; /, "move window to "); sub(/^mode "keys: space"$/, "this list (then Space)")
