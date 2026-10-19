@@ -16,6 +16,7 @@ focus_follows_mouse no
 exec --no-startup-id dunst -config ~/.config/i3/dunstrc
 exec --no-startup-id nm-applet
 exec --no-startup-id xss-lock -- i3lock -n -c 000000
+exec --no-startup-id ~/.config/i3/gpu
 
 bindsym $mod+Return exec $term
 bindsym $mod+t exec $term
