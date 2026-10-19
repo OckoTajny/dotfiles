@@ -22,6 +22,7 @@ bindsym $mod+t exec $term
 bindsym $mod+n exec $term -e nvim
 bindsym $mod+w exec zen-browser
 bindsym $mod+e exec nautilus
+bindsym $mod+b exec $term -e btop
 bindsym $mod+space exec $rofi -show drun
 bindsym Ctrl+$mod+space exec --no-startup-id sh -c 'setxkbmap -query | grep -q "layout: *us" && setxkbmap cz || setxkbmap us'
 bindsym Print exec --no-startup-id maim -s | xclip -selection clipboard -t image/png
