@@ -87,7 +87,7 @@ bindsym $mod+Shift+e exit
 bindsym $mod+Shift+r restart
 
 bar {
-    status_command i3status -c ~/.config/i3/i3status.conf
+    status_command ~/.config/i3/status
     position top
     tray_output primary
     colors {
@@ -98,6 +98,7 @@ bar {
         active_workspace   #2c313a #2c313a #abb2bf
         inactive_workspace #000000 #000000 #5c6370
         urgent_workspace   #ef596f #ef596f #000000
+        binding_mode       #ef596f #ef596f #000000
     }
 }
 

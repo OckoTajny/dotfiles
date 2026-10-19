@@ -41,14 +41,42 @@ return {
         c.red1 = "#ef596f"
         c.orange = "#d8985f"
         c.yellow = "#e5c07b"
+        c.error = "#ef596f"
+        c.warning = "#e5c07b"
+        c.info = "#52adf2"
+        c.hint = "#2bbac5"
+        c.git = { add = "#89ca78", change = "#52adf2", delete = "#ef596f", ignore = "#5c6370" }
       end or nil,
       on_highlights = i3 and function(hl)
-        hl.Cursor = { fg = "#000000", bg = "#14fa50" }
-        hl.CursorLineNr = { fg = "#14fa50", bold = true }
-        -- Hyper colors keywords magenta (cyan is for operators)
-        hl.Keyword = { fg = "#d55fde" }
-        hl["@keyword"] = { fg = "#d55fde" }
-        hl["@keyword.function"] = { fg = "#d55fde" }
+        -- syntax, matching the VS Code Hyper token colors
+        local fg = function(c, extra) return vim.tbl_extend("force", { fg = c }, extra or {}) end
+        for group, spec in pairs({
+          Keyword = fg("#d55fde"), ["@keyword"] = fg("#d55fde"), ["@keyword.function"] = fg("#d55fde"),
+          ["@keyword.return"] = fg("#d55fde"), ["@keyword.import"] = fg("#d55fde"), ["@conditional"] = fg("#d55fde"),
+          ["@variable"] = fg("#ef596f"), ["@variable.member"] = fg("#ef596f"), ["@property"] = fg("#ef596f"),
+          ["@variable.parameter"] = fg("#a6b2c0"), ["@variable.builtin"] = fg("#e5c07b"),
+          Function = fg("#52adf2"), ["@function"] = fg("#52adf2"), ["@function.call"] = fg("#52adf2"),
+          ["@function.method"] = fg("#52adf2"), ["@function.method.call"] = fg("#52adf2"), ["@constructor"] = fg("#e5c07b"),
+          String = fg("#89ca78"), ["@string"] = fg("#89ca78"), ["@string.escape"] = fg("#2bbac5"),
+          Number = fg("#d8985f"), ["@number"] = fg("#d8985f"), Boolean = fg("#d8985f"), ["@boolean"] = fg("#d8985f"),
+          Constant = fg("#e5c07b"), ["@constant"] = fg("#e5c07b"), ["@constant.builtin"] = fg("#d8985f"),
+          Type = fg("#e5c07b"), ["@type"] = fg("#e5c07b"), ["@type.builtin"] = fg("#e5c07b"), ["@module"] = fg("#e5c07b"),
+          Operator = fg("#2bbac5"), ["@operator"] = fg("#2bbac5"), ["@punctuation.bracket"] = fg("#abb2bf"),
+          ["@punctuation.delimiter"] = fg("#abb2bf"), ["@tag"] = fg("#ef596f"), ["@tag.attribute"] = fg("#d8985f", { italic = true }),
+          Comment = fg("#5c6370", { italic = true }), ["@comment"] = fg("#5c6370", { italic = true }),
+          -- UI
+          Cursor = { fg = "#000000", bg = "#14fa50" }, CursorLineNr = fg("#14fa50", { bold = true }),
+          CursorLine = { bg = "#0d0f13" }, LineNr = fg("#495162"), Visual = { bg = "#2c3a52" },
+          Search = { fg = "#000000", bg = "#e5c07b" }, IncSearch = { fg = "#000000", bg = "#14fa50" },
+          CurSearch = { fg = "#000000", bg = "#14fa50" }, MatchParen = fg("#14fa50", { bold = true, underline = true }),
+          WinSeparator = fg("#2c313a"), FloatBorder = fg("#52adf2"), Pmenu = { fg = "#abb2bf", bg = "#000000" },
+          PmenuSel = { fg = "#000000", bg = "#52adf2" }, PmenuThumb = { bg = "#52adf2" },
+          DiagnosticError = fg("#ef596f"), DiagnosticWarn = fg("#e5c07b"), DiagnosticInfo = fg("#52adf2"),
+          DiagnosticHint = fg("#2bbac5"), DiagnosticUnderlineError = { undercurl = true, sp = "#ef596f" },
+          DiagnosticUnderlineWarn = { undercurl = true, sp = "#e5c07b" },
+        }) do
+          hl[group] = spec
+        end
       end or nil,
     },
   },
