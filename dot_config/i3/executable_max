@@ -1,0 +1,9 @@
+#!/bin/sh
+# Super+D: maximize the focused window over the others but under the bar (floating, full workspace); again = back to tiling
+tree=$(i3-msg -t get_tree)
+if echo "$tree" | jq -e '.. | objects | select(.focused == true) | .floating | test("on")' >/dev/null; then
+  exec i3-msg -q floating disable
+fi
+# workspace rect already excludes the bar
+set -- $(i3-msg -t get_workspaces | jq -r '.[] | select(.focused) | .rect | "\(.x) \(.y) \(.width) \(.height)"')
+i3-msg -q "floating enable, resize set $3 px $4 px, move absolute position $1 px $2 px"
