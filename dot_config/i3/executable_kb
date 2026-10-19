@@ -1,0 +1,5 @@
+#!/bin/sh
+# Super+Space: toggle us <-> cz keyboard layout with a short notification
+if setxkbmap -query | grep -q 'layout: *us'; then l=cz; else l=us; fi
+setxkbmap "$l"
+notify-send -t 1000 -a keyboard "$l"
