@@ -1,0 +1,12 @@
+#!/bin/sh
+# Super+Escape, Space: list every bind from the i3 config
+awk '/^bind(sym|code)/ {
+  key = $2; gsub(/\$mod/, "Super", key)
+  if ($1 == "bindcode") sub(/1[0-4]$/, substr(key, length(key)) + 1, key)
+  $1 = $2 = ""; sub(/^ +(exec (--no-startup-id )?)?/, "")
+  sub(/^\$term -e nvim$/, "LazyVim"); sub(/^\$term$/, "terminal"); sub(/^\$rofi -show drun$/, "app launcher")
+  sub(/^sh -c .setxkbmap.*/, "switch us / cz layout"); sub(/^maim.*/, "screenshot region to clipboard")
+  sub(/^move container to output /, "move window to monitor "); sub(/; focus output.*/, ""); sub(/^focus output /, "focus monitor ")
+  sub(/^move container to workspace [0-9]+; /, "move window to "); sub(/^mode "keys: space"$/, "this list (then Space)")
+  printf "%-24s %s\n", key, $0
+}' ~/.config/i3/config | rofi -dmenu -i -p keys -theme ~/.config/i3/rofi.rasi -theme-str 'window { width: 760px; } listview { lines: 22; }'
