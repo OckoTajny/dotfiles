@@ -1,0 +1,8 @@
+#!/bin/sh
+# GPU busy % + watts and CPU package watts for i3status, every 5 s.
+# intel_gpu_top needs cap_perfmon (pacman hook re-applies it), not sudo.
+exec intel_gpu_top -l -s 5000 | awk -v g="$XDG_RUNTIME_DIR/i3-gpu" -v p="$XDG_RUNTIME_DIR/i3-pkg" 'NR > 2 {
+  m = $7; if ($10 > m) m = $10; if ($13 > m) m = $13; if ($16 > m) m = $16
+  printf "%d%% %.1fW\n", m, $5 > g; close(g)
+  printf "%.1fW\n", $6 > p; close(p)
+}'
