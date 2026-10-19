@@ -40,10 +40,8 @@ bindsym $mod+d exec --no-startup-id ~/.config/i3/max
 bindsym $mod+Shift+space floating toggle
 floating_modifier $mod
 
-bindsym $mod+Left focus left
 bindsym $mod+Down focus down
 bindsym $mod+Up focus up
-bindsym $mod+Right focus right
 bindsym Ctrl+$mod+h focus left
 bindsym Ctrl+$mod+j focus down
 bindsym Ctrl+$mod+k focus up
@@ -99,8 +97,11 @@ bindcode $mod+Mod1+16 move container to workspace 7
 bindcode $mod+Mod1+17 move container to workspace 8
 bindcode $mod+Mod1+18 move container to workspace 9
 bindcode $mod+Mod1+19 move container to workspace 10
-bindsym $mod+z workspace prev
-bindsym $mod+x workspace next
+# Super+Y/X (physical keys, same on us and cz) and Super+Left/Right: previous/next workspace number
+bindcode $mod+52 exec --no-startup-id ~/.config/i3/ws -1
+bindcode $mod+53 exec --no-startup-id ~/.config/i3/ws +1
+bindsym $mod+Left exec --no-startup-id ~/.config/i3/ws -1
+bindsym $mod+Right exec --no-startup-id ~/.config/i3/ws +1
 
 bindsym $mod+l exec --no-startup-id loginctl lock-session
 bindsym $mod+Shift+e exit
