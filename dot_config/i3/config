@@ -16,7 +16,8 @@ focus_follows_mouse yes
 # tap Super alone = Super+R (app launcher), held Super works as usual
 exec --no-startup-id xcape -e 'Super_L=Super_L|r'
 exec --no-startup-id touchegg
-exec_always --no-startup-id feh --no-fehbg --bg-fill ~/.config/i3/wall.jpg
+# wallpaper: ~/Pictures/Wallpapers/i3.jpg if present (downloaded, not in the repo), else the bundled one
+exec_always --no-startup-id feh --no-fehbg --bg-fill ~/Pictures/Wallpapers/i3.jpg || feh --no-fehbg --bg-fill ~/.config/i3/wall.jpg
 exec --no-startup-id dunst -config ~/.config/i3/dunstrc
 exec --no-startup-id nm-applet
 exec --no-startup-id xss-lock -- i3lock -n -c 000000
@@ -121,10 +122,6 @@ bar {
     }
 }
 
-# Super+Escape then Space: show all binds
-mode "keys: space" {
-    bindsym space exec --no-startup-id ~/.config/i3/keys, mode "default"
-    bindsym $mod+space exec --no-startup-id ~/.config/i3/keys, mode "default"
-    bindsym Escape mode "default"
-}
-bindsym $mod+Escape mode "keys: space"
+# Super+Escape: power menu, Super+Shift+Escape: all keybinds (like niri)
+bindsym $mod+Escape exec --no-startup-id ~/.config/i3/power
+bindsym $mod+Shift+Escape exec --no-startup-id ~/.config/i3/keys

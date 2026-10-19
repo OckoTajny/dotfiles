@@ -1,0 +1,11 @@
+#!/bin/sh
+# Super+Escape: power menu (like Ambxst)
+c=$(printf '%s\n' "󰌾  Lock" "󰤄  Suspend" "󰍃  Log out" "󰜉  Reboot" "󰐥  Shut down" \
+  | rofi -dmenu -i -p power -theme ~/.config/i3/rofi.rasi -theme-str 'window { width: 320px; } listview { lines: 5; }') || exit 0
+case $c in
+  *Lock) loginctl lock-session ;;
+  *Suspend) systemctl suspend ;;
+  *"Log out") i3-msg exit ;;
+  *Reboot) systemctl reboot ;;
+  *"Shut down") systemctl poweroff ;;
+esac
