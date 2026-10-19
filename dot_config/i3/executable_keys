@@ -1,12 +1,13 @@
 #!/bin/sh
 # Super+Escape, Space: list every bind from the i3 config
 awk '/^bind(sym|code)/ {
-  key = $2; gsub(/\$mod/, "Super", key); gsub(/Mod1/, "Alt", key)
+  sub(/ --whole-window/, "")
+  key = $2; gsub(/\$mod/, "Super", key); gsub(/Mod1/, "Alt", key); sub(/button4$/, "scroll up", key); sub(/button5$/, "scroll down", key); sub(/button6$/, "scroll left", key); sub(/button7$/, "scroll right", key)
   if ($1 == "bindcode") n = substr(key, length(key) - 1) - 9; sub(/1[0-9]$/, n % 10, key)
   $1 = $2 = ""; sub(/^ +(exec (--no-startup-id )?)?/, "")
   sub(/^\$term -e nvim$/, "LazyVim"); sub(/.*Toolbox\/scripts\/idea$/, "IntelliJ IDEA"); sub(/^\$term$/, "terminal"); sub(/^\$rofi -show drun$/, "app launcher")
   sub(/.*i3\/kb$/, "switch us / cz layout"); sub(/.*i3\/max$/, "maximize (keeps the bar)"); sub(/^maim.*/, "screenshot region to clipboard")
   sub(/^move container to output /, "move window to monitor "); sub(/; focus output.*/, ""); sub(/^focus output /, "focus monitor ")
-  sub(/^move container to workspace [0-9]+; /, "move window to "); sub(/^move container to workspace /, "move window (stay) to workspace "); sub(/^mode "keys: space"$/, "this list (then Space)")
+  sub(/^move container to workspace [0-9]+; /, "move window to "); sub(/^move container to workspace /, "move window (stay) to workspace "); sub(/.*cooldown .*ws -1$/, "previous workspace"); sub(/.*cooldown .*ws \+1$/, "next workspace"); sub(/.*cooldown i3-msg -q /, ""); sub(/^mode "keys: space"$/, "this list (then Space)")
   printf "%-24s %s\n", key, $0
 }' ~/.config/i3/config | rofi -dmenu -i -p keys -theme ~/.config/i3/rofi.rasi -theme-str 'window { width: 760px; } listview { lines: 22; }'
