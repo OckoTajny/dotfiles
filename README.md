@@ -29,6 +29,23 @@ This installs base tools (`git`, `chezmoi`, `yay`), a core dependency set
 profile branches into `~/.local/share/chezmoi-<profile>/`, drops the `dotswap`
 tools into `~/.local/bin/`, and applies the `ambxst` profile.
 
+### Just i3 or just niri
+
+```sh
+curl -fsSL solta.tech/install/i3 | bash     # only the i3 (X11) session
+curl -fsSL solta.tech/install/niri | bash   # only niri + the Ambxst shell
+```
+
+Same `install.sh`, run with `--i3` / `--niri` (`install-i3.sh`, `install-niri.sh`).
+The i3 edition installs just the i3 packages and applies only the files the
+session uses (`~/.config/{i3,kitty,nvim,btop,fastfetch,lazygit}`, `~/.zshrc`),
+no Hyprland, Ambxst or dotswap tools. The niri edition skips the Hyprland
+rices and i3. Either way the login screen defaults to that session.
+
+Low battery in i3 shows a notification. During install you can opt in to a
+fullscreen blinking alert instead (or pass `--battery-alert`); it flashes up to
+3 times a second, so skip it if flashing light bothers you.
+
 ### Updating
 
 The same script doubles as an updater. Run it with `--update` to pull in only

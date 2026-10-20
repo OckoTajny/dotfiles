@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # dotswap installer – clone the rice profiles + tools onto a fresh machine.
 # Usage: curl -fsSL solta.tech/install | bash
+#        curl -fsSL solta.tech/install/i3 | bash     (just the i3 session, --i3)
+#        curl -fsSL solta.tech/install/niri | bash   (just niri + Ambxst, --niri)
 #   (solta.tech/install redirects to raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh)
 #
 # Resilient by design: a failing package or step is reported and skipped, the
@@ -33,13 +35,22 @@ has_tty() { { : </dev/tty; } 2>/dev/null; }
 # unattended script should gamble on.
 MODE=install
 MODE_EXPLICIT=0
+# EDITION: full (every rice), i3 (only the X11 i3 session) or niri (niri + Ambxst).
+EDITION=full
+BATTERY_ALERT=0
 for a in "$@"; do
   case "$a" in
+    --i3|i3) EDITION=i3 ;;
+    --niri|niri) EDITION=niri ;;
+    --battery-alert) BATTERY_ALERT=1 ;;
     --update|update|-u) MODE=update; MODE_EXPLICIT=1 ;;
     --doctor|doctor|--diagnose|diagnose) MODE=doctor; MODE_EXPLICIT=1 ;;
     --uninstall|uninstall) MODE=uninstall; MODE_EXPLICIT=1 ;;
     --help|-h)
-      echo "Usage: install.sh [--update|--doctor|--uninstall]"
+      echo "Usage: install.sh [--i3|--niri] [--battery-alert] [--update|--doctor|--uninstall]"
+      echo "  --i3        only the i3 (X11) session: its packages + configs, no Hyprland rices"
+      echo "  --niri      only niri + the Ambxst shell, no Hyprland rices or i3"
+      echo "  --battery-alert  i3: fullscreen blinking low-battery alert instead of a notification"
       echo "  (no flag)   asks interactively (install/update/doctor/uninstall) if run in a terminal"
       echo "  --update    pull new packages/tools, configs untouched"
       echo "  --doctor    diagnose a broken rice (session, processes, config) - read-only"
@@ -79,6 +90,7 @@ CORE_PKGS=(hyprland niri xwayland-satellite foot fish mako btop fastfetch fuzzel
   wtype uv pipewire pavucontrol playerctl wlogout hyprshot
   # i3 (X11) session: same binds as niri, VS Code "Hyper" colors
   i3-wm i3status i3lock xss-lock rofi dunst maim xclip autorandr arandr xcape touchegg picom
+  feh xorg-xinput xorg-xrandr wireplumber
   tesseract tesseract-data-eng tesseract-data-ces bc
   # zsh (default shell – the tracked .zshrc uses oh-my-zsh)
   zsh
@@ -116,6 +128,27 @@ OPTIONAL_APPS=(
   "onlyoffice-bin|OnlyOffice"
   "sublime-text-4|Sublime Text"
 )
+
+# Editions trim the package set and the profiles to what that session needs.
+I3_PKGS=(i3-wm i3status i3lock xss-lock rofi dunst maim xclip autorandr arandr xcape touchegg picom
+  feh xorg-xinput xorg-xrandr wireplumber pipewire pavucontrol playerctl brightnessctl jq bc
+  kitty fastfetch btop ttf-jetbrains-mono-nerd zsh neovim nodejs npm lazygit pacman-contrib)
+NOT_NIRI=" hyprland hypridle hyprlock hyprpicker hyprshot i3-wm i3status i3lock xss-lock maim xclip
+  autorandr arandr xcape touchegg picom feh xorg-xinput xorg-xrandr waybar awww gammastep nvtop
+  papirus-icon-theme "
+case "$EDITION" in
+  i3)
+    CORE_PKGS=("${I3_PKGS[@]}"); AUR_PKGS=()
+    # every profile branch carries ~/.config/i3; only the i3 session's files get applied (step 6)
+    PROFILES=(niri); DEFAULT_PROFILE=niri ;;
+  niri)
+    drop=" $(echo $NOT_NIRI) "   # newlines -> single spaces, so " pkg " matches
+    kept=(); for p in "${CORE_PKGS[@]}"; do [[ $drop == *" $p "* ]] || kept+=("$p"); done
+    CORE_PKGS=("${kept[@]}"); AUR_PKGS=()
+    PROFILES=(niri); DEFAULT_PROFILE=niri ;;
+esac
+# what the login screen should default to
+declare -A SESSION_OF=( [full]=hyprland [i3]=i3 [niri]=niri )
 
 FAILS=()
 
@@ -363,7 +396,7 @@ run_uninstall() {
     rm -rf "${SRC_BASE:?}/chezmoi-$p"
   done
   ok "removed chezmoi profile sources"
-  rm -f "$HOME/.local/state/dotswap-profile"
+  rm -f "$HOME/.local/state/dotswap-profile" "$HOME/.local/state/i3-battery-alert"
   ok "removed profile state file"
   echo
   printf '%sDone.%s ~/.config/hypr and installed packages were left untouched.\n\n' "$GRN" "$R"
@@ -475,12 +508,13 @@ fi
 # 43pr rice (github.com/43PR/dotfiles): its GTK theme expects white Papirus
 # folders – same step upstream's install.sh does. Idempotent, root needed
 # because it rewrites /usr/share/icons/Papirus.
-if [ "$MODE" != doctor ] && need papirus-folders; then
+if [ "$MODE" != doctor ] && [ "$EDITION" = full ] && need papirus-folders; then
   sudo papirus-folders -C white >/dev/null 2>&1 \
     && ok "papirus folders → white (43pr)" \
     || warn "papirus-folders -C white failed (43pr folder icons stay default)"
 fi
 
+if [ "$EDITION" != i3 ]; then  # Ambxst: not part of the i3 session
 # Ambxst shell (ambxst rice's bar/dock) – not a package, has its own installer.
 # The tracked hyprland.conf already has `source = ~/.local/share/ambxst/hyprland.conf`,
 # so without this, Hyprland loads fine but no bar/dock ever appears.
@@ -598,6 +632,7 @@ EOF
     && ok "Ambxst started via systemd --user (autostarts on future logins)" \
     || warn "couldn't enable ambxst.service – run: systemctl --user enable --now ambxst.service"
 fi
+fi  # EDITION != i3 (Ambxst)
 
 # optional desktop apps the keybinds launch – the user chooses which to install
 printf '   %sApps (keybind targets) – optional%s\n' "$DIM" "$R"
@@ -726,6 +761,7 @@ for p in "${PROFILES[@]}"; do
   fi
 done
 
+if [ "$EDITION" != i3 ]; then  # dotswap tools, dictation, sudo toggle: not used by the i3 session
 # 4. install the dotswap tools + voice-to-text ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
@@ -918,6 +954,9 @@ HELPER_EOF
   rm -f "$helper_tmp" "$rule_tmp"
 fi
 
+fi  # EDITION != i3 (steps 4 to 4b)
+
+if [ "$EDITION" != niri ]; then  # i3 session extras
 # 4c. i3 bar GPU load ------------------------------------------------------------
 # The i3 bar reads Intel GPU busy % and watts from intel_gpu_top, which needs
 # the perf PMU. Grant only cap_perfmon to that one binary (no sudo, no global
@@ -970,7 +1009,31 @@ XORG_EOF
   # touchpad gestures in i3 (3-finger swipe = workspace); the client runs from the i3 config
   sudo systemctl enable --now touchegg.service >/dev/null 2>&1 \
     && ok "touchegg daemon enabled" || warn "enable touchegg.service"
+
+  # Low battery in i3: a notification by default. Opt-in: a fullscreen rainbow-blinking
+  # alert (~/.config/i3/battery checks this flag file). Only asked on a fresh install.
+  ALERT_FLAG="$HOME/.local/state/i3-battery-alert"
+  if [ "$BATTERY_ALERT" -eq 0 ] && [ "$MODE" = install ] && has_tty; then
+    printf '   Fullscreen blinking low-battery alert in i3 instead of a notification?\n'
+    printf '   (flashes up to 3x a second, skip if you are sensitive to flashing light) [y/N] '
+    alert_ans=no
+    IFS= read -r alert_ans </dev/tty || alert_ans=no
+    case "$(printf '%s' "$alert_ans" | tr '[:upper:]' '[:lower:]')" in
+      y|yes) BATTERY_ALERT=1 ;;
+      *) rm -f "$ALERT_FLAG" ;;
+    esac
+  fi
+  if [ "$BATTERY_ALERT" -eq 1 ]; then
+    mkdir -p "$(dirname "$ALERT_FLAG")" && touch "$ALERT_FLAG"
+    have tk || sudo pacman -S --needed --noconfirm tk >/dev/null 2>&1 || fail "install tk (battery alert)"
+    ok "i3 low battery: fullscreen blinking alert"
+  elif [ -f "$ALERT_FLAG" ]; then
+    ok "i3 low battery: fullscreen blinking alert (kept)"
+  else
+    ok "i3 low battery: notification"
+  fi
 fi
+fi  # EDITION != niri (step 4c)
 
 # 5. login screen theme (only if SDDM is the active display manager – no
 #    bootloader/initramfs changes here, just an AUR package + a drop-in
@@ -993,7 +1056,8 @@ if systemctl is-active --quiet sddm.service 2>/dev/null; then
     fi
   fi
 
-  # Force Hyprland as this user's default login session via AccountsService.
+  # Force this edition's session (Hyprland for the full install) as the default
+  # login session via AccountsService.
   # CachyOS ships gnome/plasma/niri session files alongside Hyprland; on a
   # fresh account SDDM has no remembered choice yet and silently falls back
   # to whichever session it picks by default (observed: alphabetically-first
@@ -1004,16 +1068,17 @@ if systemctl is-active --quiet sddm.service 2>/dev/null; then
     sudo cp "$ACCOUNTS_FILE" "$ACCOUNTS_FILE.bak-dotswap"
     for key in Session XSession; do
       if sudo grep -q "^$key=" "$ACCOUNTS_FILE"; then
-        sudo sed -i "s/^$key=.*/$key=hyprland/" "$ACCOUNTS_FILE"
+        sudo sed -i "s/^$key=.*/$key=${SESSION_OF[$EDITION]}/" "$ACCOUNTS_FILE"
       else
-        sudo sed -i "/^\[User\]/a $key=hyprland" "$ACCOUNTS_FILE"
+        sudo sed -i "/^\[User\]/a $key=${SESSION_OF[$EDITION]}" "$ACCOUNTS_FILE"
       fi
     done
-    ok "default login session → hyprland (AccountsService)"
+    ok "default login session → ${SESSION_OF[$EDITION]} (AccountsService)"
   else
     sudo mkdir -p /var/lib/AccountsService/users
-    printf '[User]\nSession=hyprland\nXSession=hyprland\n' | sudo tee "$ACCOUNTS_FILE" >/dev/null \
-      && ok "default login session → hyprland (AccountsService)" \
+    printf '[User]\nSession=%s\nXSession=%s\n' "${SESSION_OF[$EDITION]}" "${SESSION_OF[$EDITION]}" \
+      | sudo tee "$ACCOUNTS_FILE" >/dev/null \
+      && ok "default login session → ${SESSION_OF[$EDITION]} (AccountsService)" \
       || warn "couldn't write $ACCOUNTS_FILE"
   fi
 fi
@@ -1028,6 +1093,14 @@ case ":$PATH:" in
 esac
 if [ "$MODE" = update ]; then
   ok "update mode – your ${B}~/.config${R} was left untouched (keybinds & tweaks kept)"
+elif [ "$EDITION" = i3 ]; then
+  # only the files the i3 session uses, straight from the profile source (no dotswap)
+  src="$SRC_BASE/chezmoi-$DEFAULT_PROFILE"
+  mkdir -p "$HOME/.config"   # chezmoi won't create the parent of a target it's told to apply
+  chezmoi apply --force --source "$src" \
+    "$HOME/.config/i3" "$HOME/.config/kitty" "$HOME/.config/nvim" "$HOME/.config/btop" \
+    "$HOME/.config/fastfetch" "$HOME/.config/lazygit" "$HOME/.zshrc" \
+    && ok "applied the i3 session configs" || fail "apply i3 configs from $src"
 elif [ -x "$BIN/dotswap" ] && [ -d "$SRC_BASE/chezmoi-$DEFAULT_PROFILE" ]; then
   "$BIN/dotswap" use "$DEFAULT_PROFILE" && ok "applied default profile: ${B}${DEFAULT_PROFILE}${R}" \
     || fail "apply profile $DEFAULT_PROFILE"
@@ -1040,7 +1113,10 @@ echo
 printf '%s%sreboot or re-login recommended%s – the default-shell change above only takes\n' "$YEL" "$B" "$R"
 printf '  effect after that; %shyprctl reload%s (printed above) only refreshes the\n' "$B" "$R"
 printf '  compositor for rice switches, not this first-time setup.\n\n'
-if [ "${#FAILS[@]}" -eq 0 ]; then
+if [ "${#FAILS[@]}" -eq 0 ] && [ "$EDITION" = i3 ]; then
+  printf '%s%s✓ all done.%s pick %si3%s on the login screen, %sSuper+Shift+Escape%s lists every keybind\n\n' \
+    "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
+elif [ "${#FAILS[@]}" -eq 0 ]; then
   printf '%s%s✓ all done.%s cycle rices with %sCtrl+Shift+Super+Left/Right%s, or %sdotswap use <profile>%s\n\n' \
     "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
 else
