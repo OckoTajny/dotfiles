@@ -11,7 +11,7 @@ case $1 in
         wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q MUTED && osd "Mic muted" || osd "Mic on" ;;
   bri+|bri-) brightnessctl -q set "5%${1#bri}"; b=$(brightnessctl -m | cut -d, -f4 | tr -d %); osd -h int:value:"$b" "Brightness $b%" ;;
   touchpad)
-    d=$(xinput list --name-only | grep -i touchpad | head -n1)
+    d=$(xinput list --name-only | sed "s/^∼ //" | grep -i touchpad | head -n1)  # disabled devices get a "∼ " prefix
     if xinput list-props "$d" | grep -q 'Device Enabled.*1$'; then xinput disable "$d"; osd "Touchpad off"; else xinput enable "$d"; osd "Touchpad on"; fi ;;
   display)
     int=$(xrandr | awk '/ connected/ && /^eDP/ {print $1; exit}')
