@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# Fullscreen blinking low-battery alert: red/white/black at full brightness, faster the lower
-# the charge, click to hide, closes itself once the charger is in. BATTERY_DIR overrides the
+# Fullscreen blinking low-battery alert: rainbow at full brightness, as fast as is safe, click to hide, closes itself once the charger is in. BATTERY_DIR overrides the
 # battery (for testing).
 import glob
 import os
@@ -8,7 +7,10 @@ import subprocess
 import tkinter as tk
 
 BAT = os.environ.get("BATTERY_DIR") or sorted(glob.glob("/sys/class/power_supply/BAT*"))[0]
-COLORS = [("#ff0000", "#ffffff"), ("#ffffff", "#ff0000"), ("#000000", "#ff0000")]  # (bg, fg)
+COLORS = [  # (bg, fg)
+    ("#ff0000", "#ffffff"), ("#ffff00", "#ff00ff"), ("#00ff00", "#000000"), ("#00ffff", "#ff0000"),
+    ("#0000ff", "#ffff00"), ("#ff00ff", "#00ff00"), ("#ffffff", "#ff0000"), ("#000000", "#00ffff"),
+]
 FONT = "JetBrainsMono Nerd Font"
 
 
@@ -51,9 +53,9 @@ def blink():
     for widget in (root, big, small):
         widget["bg"] = bg
     big["fg"] = small["fg"] = fg
-    # 20% -> 250 ms, 5% -> 190 ms, 1% -> 170 ms. Never under 167 ms: past 3 flashes/s
-    # full-screen red flashing can trigger photosensitive seizures.
-    root.after(170 + cap * 4, blink)
+    # 167 ms is the floor on purpose: past 3 flashes/s full-screen flashing can trigger
+    # photosensitive seizures.
+    root.after(167, blink)
 
 
 root.bind("<Button>", close)
