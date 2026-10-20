@@ -34,7 +34,8 @@ bindsym $mod+e exec nautilus
 bindsym $mod+b exec $term -e btop
 bindsym $mod+r exec $rofi -show drun
 bindsym $mod+space exec --no-startup-id ~/.config/i3/kb
-bindsym Print exec --no-startup-id maim -s | xclip -selection clipboard -t image/png
+bindsym --release Print exec --no-startup-id ~/.config/i3/shot
+bindsym --release $mod+Shift+s exec --no-startup-id ~/.config/i3/shot
 
 bindsym $mod+q kill
 bindsym $mod+f fullscreen toggle
