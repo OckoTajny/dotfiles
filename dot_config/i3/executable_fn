@@ -1,5 +1,5 @@
 #!/bin/sh
-# Fn keys: volume, mic, brightness, touchpad, display. OSD through dunst.
+# Fn keys: volume, mic, brightness, touchpad, display, rotate. OSD through dunst.
 osd() { dunstify -a fn -h string:x-dunst-stack-tag:fn -t 1200 "$@"; }
 vol() { wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf "%d", $2 * 100}'; }
 case $1 in
@@ -13,6 +13,12 @@ case $1 in
   touchpad)
     d=$(xinput list --name-only | sed "s/^∼ //" | grep -i touchpad | head -n1)  # disabled devices get a "∼ " prefix
     if xinput list-props "$d" | grep -q 'Device Enabled.*1$'; then xinput disable "$d"; osd "Touchpad off"; else xinput enable "$d"; osd "Touchpad on"; fi ;;
+  rotate)
+    int=$(xrandr | awk '/ connected/ && /^eDP/ {print $1; exit}')
+    cur=$(xrandr | awk -v o="$int" '$1 == o {sub(/ \(.*/, ""); print ($NF ~ /^(left|inverted|right)$/ ? $NF : "normal")}')
+    case $cur in normal) next=left ;; left) next=inverted ;; inverted) next=right ;; *) next=normal ;; esac
+    xrandr --output "$int" --rotate "$next" && osd "Screen: $next"
+    feh --no-fehbg --bg-fill ~/Pictures/Wallpapers/i3.jpg || feh --no-fehbg --bg-fill ~/.config/i3/wall.jpg ;;
   display)
     int=$(xrandr | awk '/ connected/ && /^eDP/ {print $1; exit}')
     ext=$(xrandr | awk '/ connected/ && !/^eDP/ {print $1; exit}')
