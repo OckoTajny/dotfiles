@@ -1,0 +1,30 @@
+#!/bin/sh
+# Fn keys: volume, mic, brightness, touchpad, display. OSD through dunst.
+osd() { dunstify -a fn -h string:x-dunst-stack-tag:fn -t 1200 "$@"; }
+vol() { wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf "%d", $2 * 100}'; }
+case $1 in
+  vol+) wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+; osd -h int:value:"$(vol)" "Volume $(vol)%" ;;
+  vol-) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; osd -h int:value:"$(vol)" "Volume $(vol)%" ;;
+  mute) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+        wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED && osd "Sound muted" || osd -h int:value:"$(vol)" "Volume $(vol)%" ;;
+  mic)  wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+        wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q MUTED && osd "Mic muted" || osd "Mic on" ;;
+  bri+|bri-) brightnessctl -q set "5%${1#bri}"; b=$(brightnessctl -m | cut -d, -f4 | tr -d %); osd -h int:value:"$b" "Brightness $b%" ;;
+  touchpad)
+    d=$(xinput list --name-only | grep -i touchpad | head -n1)
+    if xinput list-props "$d" | grep -q 'Device Enabled.*1$'; then xinput disable "$d"; osd "Touchpad off"; else xinput enable "$d"; osd "Touchpad on"; fi ;;
+  display)
+    int=$(xrandr | awk '/ connected/ && /^eDP/ {print $1; exit}')
+    ext=$(xrandr | awk '/ connected/ && !/^eDP/ {print $1; exit}')
+    c=$(printf '%s\n' "Laptop only" "External only" "Mirror" "Extend (right)" "Arrange (arandr)" \
+      | rofi -dmenu -i -p display -theme ~/.config/i3/rofi.rasi -theme-str 'window { width: 320px; } listview { lines: 5; }') || exit 0
+    case $c in Laptop*|Arrange*) ;; *) [ -n "$ext" ] || { osd "No external display"; exit 0; } ;; esac
+    case $c in
+      Laptop*)   xrandr --output "$int" --auto --primary $(xrandr | awk '/connected/ && !/^eDP/ {print "--output", $1, "--off"}') ;;
+      External*) xrandr --output "$ext" --auto --primary --output "$int" --off ;;
+      Mirror)    xrandr --output "$int" --auto --primary --output "$ext" --auto --same-as "$int" ;;
+      Extend*)   xrandr --output "$int" --auto --primary --output "$ext" --auto --right-of "$int" ;;
+      Arrange*)  exec arandr ;;
+    esac
+    feh --no-fehbg --bg-fill ~/Pictures/Wallpapers/i3.jpg || feh --no-fehbg --bg-fill ~/.config/i3/wall.jpg ;;
+esac
