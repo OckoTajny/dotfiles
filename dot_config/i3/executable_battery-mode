@@ -1,0 +1,14 @@
+#!/bin/sh
+# Super+Shift+B: low-battery warning style, fullscreen blinking alert <-> plain notification
+f=~/.local/state/i3-battery-alert
+note() { dunstify -h string:x-dunst-stack-tag:battery "$@"; }
+if [ -f "$f" ]; then
+  rm -f "$f"
+  pkill -f 'python3 .*i3/battery-alert'
+  note "Low battery: notification" "Super+Shift+B switches back to the blinking alert."
+elif python3 -c 'import tkinter' 2>/dev/null; then
+  mkdir -p "${f%/*}" && touch "$f"
+  note "Low battery: blinking alert" "Super+Shift+B switches back to a notification."
+else
+  note -u critical "Blinking alert needs tk" "sudo pacman -S tk"
+fi
