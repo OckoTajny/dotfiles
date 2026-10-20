@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Fullscreen blinking low-battery alert: rainbow at full brightness, as fast as is safe, click to hide, closes itself once the charger is in. BATTERY_DIR overrides the
-# battery (for testing).
+# Fullscreen blinking low-battery alert: rainbow at full brightness, as fast as is safe.
+# Click to hide; closes itself once the charger is in. BATTERY_DIR overrides the battery (for testing).
 import glob
 import os
 import subprocess
