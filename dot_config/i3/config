@@ -147,4 +147,5 @@ bar {
 
 # Super+Escape: power menu, Super+Shift+Escape: all keybinds (like niri)
 bindsym $mod+Escape exec --no-startup-id ~/.config/i3/power
+bindsym $mod+Shift+b exec --no-startup-id ~/.config/i3/battery-mode
 bindsym $mod+Shift+Escape exec --no-startup-id ~/.config/i3/keys
