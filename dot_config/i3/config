@@ -46,9 +46,11 @@ bindsym XF86AudioMicMute exec --no-startup-id ~/.config/i3/fn mic
 bindsym XF86MonBrightnessUp exec --no-startup-id ~/.config/i3/fn bri+
 bindsym XF86MonBrightnessDown exec --no-startup-id ~/.config/i3/fn bri-
 bindsym XF86TouchpadToggle exec --no-startup-id ~/.config/i3/fn touchpad
-# touchpad key on newer laptops sends Ctrl+Super+F24 (keycode 202)
-bindcode Ctrl+$mod+202 exec --no-startup-id ~/.config/i3/fn touchpad
+# MSI Modern 15: the touchpad key sends Ctrl+Super+TouchpadToggle, the display key Super+P
+bindsym Ctrl+$mod+XF86TouchpadToggle exec --no-startup-id ~/.config/i3/fn touchpad
 bindsym XF86Display exec --no-startup-id ~/.config/i3/fn display
+bindsym $mod+p exec --no-startup-id ~/.config/i3/fn display
+bindsym XF86RotateWindows exec --no-startup-id ~/.config/i3/fn rotate
 bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
 bindsym XF86AudioNext exec --no-startup-id playerctl next
 bindsym XF86AudioPrev exec --no-startup-id playerctl previous
