@@ -1,15 +1,15 @@
 #!/bin/sh
-# Low battery warnings: 20% normal, 5% critical (upower suspends at 2%). Once per drop, reset on charge.
+# Low battery: huge blinking banner (battery-alert) at 20, 15, 10, 5% and every % below,
+# since upower silently suspends at 2%. Resets once charging.
 b=$(ls -d /sys/class/power_supply/BAT* | head -n1)
 warned=100
 while :; do
   cap=$(cat "$b/capacity"); st=$(cat "$b/status")
   if [ "$st" != Discharging ]; then
     warned=100
-  elif [ "$cap" -le 5 ] && [ "$warned" -gt 5 ]; then
-    dunstify -u critical -h string:x-dunst-stack-tag:battery "Battery critical: $cap%" "Plug in now, the laptop suspends at 2%."; warned=5
-  elif [ "$cap" -le 20 ] && [ "$warned" -gt 20 ]; then
-    dunstify -u normal -h string:x-dunst-stack-tag:battery "Battery low: $cap%" "Plug in the charger soon."; warned=20
+  elif [ "$cap" -le 20 ] && { [ $((warned - cap)) -ge 5 ] || { [ "$cap" -le 5 ] && [ "$cap" -lt "$warned" ]; }; }; then
+    pgrep -f 'python3 .*i3/battery-alert' >/dev/null || ~/.config/i3/battery-alert &
+    warned=$cap
   fi
-  sleep 60
+  sleep 30
 done
