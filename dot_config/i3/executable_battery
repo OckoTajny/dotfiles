@@ -1,14 +1,21 @@
 #!/bin/sh
-# Low battery: huge blinking banner (battery-alert) at 20, 15, 10, 5% and every % below,
-# since upower silently suspends at 2%. Resets once charging.
+# Low battery warning at 20, 15, 10, 5% and every % below, since upower silently suspends at 2%.
+# A dunst notification, or the fullscreen blinking battery-alert when opted in at install
+# (~/.local/state/i3-battery-alert). Resets once charging.
 b=$(ls -d /sys/class/power_supply/BAT* | head -n1)
+flag=~/.local/state/i3-battery-alert
 warned=100
 while :; do
   cap=$(cat "$b/capacity"); st=$(cat "$b/status")
   if [ "$st" != Discharging ]; then
     warned=100
   elif [ "$cap" -le 20 ] && { [ $((warned - cap)) -ge 5 ] || { [ "$cap" -le 5 ] && [ "$cap" -lt "$warned" ]; }; }; then
-    pgrep -f 'python3 .*i3/battery-alert' >/dev/null || ~/.config/i3/battery-alert &
+    if [ -f "$flag" ]; then
+      pgrep -f 'python3 .*i3/battery-alert' >/dev/null || ~/.config/i3/battery-alert &
+    else
+      u=normal; [ "$cap" -le 5 ] && u=critical
+      dunstify -u $u -h string:x-dunst-stack-tag:battery "Battery low: $cap%" "Plug in the charger."
+    fi
     warned=$cap
   fi
   sleep 30
