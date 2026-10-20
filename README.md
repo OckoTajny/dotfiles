@@ -44,7 +44,8 @@ rices and i3. Either way the login screen defaults to that session.
 
 Low battery in i3 shows a notification. During install you can opt in to a
 fullscreen blinking alert instead (or pass `--battery-alert`); it flashes up to
-3 times a second, so skip it if flashing light bothers you.
+3 times a second, so skip it if flashing light bothers you. Super+Shift+B
+switches between the two any time.
 
 ### Updating
 

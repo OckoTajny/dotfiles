@@ -1015,7 +1015,8 @@ XORG_EOF
   ALERT_FLAG="$HOME/.local/state/i3-battery-alert"
   if [ "$BATTERY_ALERT" -eq 0 ] && [ "$MODE" = install ] && has_tty; then
     printf '   Fullscreen blinking low-battery alert in i3 instead of a notification?\n'
-    printf '   (flashes up to 3x a second, skip if you are sensitive to flashing light) [y/N] '
+    printf '   (flashes up to 3x a second, skip if you are sensitive to flashing light;\n'
+    printf '   Super+Shift+B switches between the two any time) [y/N] '
     alert_ans=no
     IFS= read -r alert_ans </dev/tty || alert_ans=no
     case "$(printf '%s' "$alert_ans" | tr '[:upper:]' '[:lower:]')" in
