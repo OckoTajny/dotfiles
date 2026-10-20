@@ -1,0 +1,5 @@
+#!/bin/sh
+# Print / Super+Shift+S: region screenshot -> ~/Pictures/Screenshots + clipboard (like niri)
+d=~/Pictures/Screenshots; mkdir -p "$d"
+f="$d/Screenshot_$(date +%Y-%m-%d_%H.%M.%S).png"
+maim -s "$f" && xclip -selection clipboard -t image/png < "$f"
