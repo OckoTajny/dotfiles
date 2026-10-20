@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Fullscreen blinking low-battery alert: rainbow at full brightness, as fast as is safe.
+# Fullscreen blinking low-battery alert: rainbow at full brightness, worse every % lower.
 # Click to hide; closes itself once the charger is in. BATTERY_DIR overrides the battery (for testing).
 import glob
 import os
@@ -7,9 +7,9 @@ import subprocess
 import tkinter as tk
 
 BAT = os.environ.get("BATTERY_DIR") or sorted(glob.glob("/sys/class/power_supply/BAT*"))[0]
-COLORS = [  # (bg, fg)
-    ("#ff0000", "#ffffff"), ("#ffff00", "#ff00ff"), ("#00ff00", "#000000"), ("#00ffff", "#ff0000"),
-    ("#0000ff", "#ffff00"), ("#ff00ff", "#00ff00"), ("#ffffff", "#ff0000"), ("#000000", "#00ffff"),
+COLORS = [  # (bg, fg); 20% uses the first two, every ~3% lower adds the next one
+    ("#000000", "#ff0000"), ("#ff0000", "#ffffff"), ("#ffff00", "#ff00ff"), ("#00ff00", "#000000"),
+    ("#00ffff", "#ff0000"), ("#0000ff", "#ffff00"), ("#ff00ff", "#00ff00"), ("#ffffff", "#ff0000"),
 ]
 FONT = "JetBrainsMono Nerd Font"
 
@@ -48,14 +48,16 @@ def blink():
         return
     cap = int(read("capacity"))
     big["text"] = f"BATTERY {cap}%"
-    bg, fg = COLORS[tick % len(COLORS)]
+    # every % lower is a bit worse: more colors and faster
+    colors = COLORS[: min(len(COLORS), 2 + (20 - cap) // 3)]
+    bg, fg = colors[tick % len(colors)]
     tick += 1
     for widget in (root, big, small):
         widget["bg"] = bg
     big["fg"] = small["fg"] = fg
-    # 167 ms is the floor on purpose: past 3 flashes/s full-screen flashing can trigger
-    # photosensitive seizures.
-    root.after(167, blink)
+    # 20% -> 395 ms, 10% -> 275 ms, 5% -> 215 ms, 1% -> 167 ms. 167 ms is the floor on
+    # purpose: past 3 flashes/s full-screen flashing can trigger photosensitive seizures.
+    root.after(167 + max(cap - 1, 0) * 12, blink)
 
 
 root.bind("<Button>", close)
