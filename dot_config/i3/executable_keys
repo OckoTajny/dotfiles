@@ -8,6 +8,6 @@ awk '/^bind(sym|code)/ {
   sub(/^\$term -e nvim$/, "LazyVim"); sub(/.*Toolbox\/scripts\/idea$/, "IntelliJ IDEA"); sub(/^\$term -e brrtfetch.*/, "terminal + brrtfetch"); sub(/^\$term$/, "terminal"); sub(/^\$rofi -show drun$/, "app launcher")
   sub(/.*i3\/kb$/, "switch us / cz layout"); sub(/.*i3\/max$/, "maximize (keeps the bar)"); sub(/.*i3\/shot$/, "screenshot region (file + clipboard)"); sub(/.*i3\/fn /, "fn: ")
   sub(/^move container to output /, "move window to monitor "); sub(/; focus output.*/, ""); sub(/^focus output /, "focus monitor ")
-  sub(/^move container to workspace [0-9]+; /, "move window to "); sub(/^move container to workspace /, "move window (stay) to workspace "); sub(/.*ws -1$/, "previous workspace"); sub(/.*ws \+1$/, "next workspace"); sub(/.*cooldown i3-msg -q /, ""); sub(/.*i3\/keys$/, "this list"); sub(/.*i3\/power$/, "power menu")
+  sub(/^move container to workspace [0-9]+; /, "move window to "); sub(/^move container to workspace /, "move window (stay) to workspace "); sub(/.*ws -1$/, "previous workspace"); sub(/.*ws \+1$/, "next workspace"); sub(/.*cooldown i3-msg -q /, ""); sub(/.*i3\/keys$/, "this list"); sub(/.*i3\/power$/, "power menu"); sub(/.*i3\/battery-mode$/, "low battery: blinking alert / notification")
   printf "%-24s %s\n", key, $0
 }' ~/.config/i3/config | rofi -dmenu -i -p keys -theme ~/.config/i3/rofi.rasi -theme-str 'window { width: 760px; } listview { lines: 22; }'
