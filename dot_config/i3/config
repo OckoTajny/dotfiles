@@ -37,6 +37,24 @@ bindsym $mod+space exec --no-startup-id ~/.config/i3/kb
 bindsym --release Print exec --no-startup-id ~/.config/i3/shot
 bindsym --release $mod+Shift+s exec --no-startup-id ~/.config/i3/shot
 
+# Fn keys (volume, mic, brightness, touchpad, display), media keys
+bindsym XF86AudioRaiseVolume exec --no-startup-id ~/.config/i3/fn vol+
+bindsym XF86AudioLowerVolume exec --no-startup-id ~/.config/i3/fn vol-
+bindsym XF86AudioMute exec --no-startup-id ~/.config/i3/fn mute
+bindsym XF86AudioMicMute exec --no-startup-id ~/.config/i3/fn mic
+bindsym XF86MonBrightnessUp exec --no-startup-id ~/.config/i3/fn bri+
+bindsym XF86MonBrightnessDown exec --no-startup-id ~/.config/i3/fn bri-
+bindsym XF86TouchpadToggle exec --no-startup-id ~/.config/i3/fn touchpad
+# touchpad key on newer laptops sends Ctrl+Super+F24 (keycode 202)
+bindcode Ctrl+$mod+202 exec --no-startup-id ~/.config/i3/fn touchpad
+bindsym XF86Display exec --no-startup-id ~/.config/i3/fn display
+bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
+bindsym XF86AudioNext exec --no-startup-id playerctl next
+bindsym XF86AudioPrev exec --no-startup-id playerctl previous
+# Copilot key = Shift+Super+F23 (keycode 201), like Hyprland: Discord, with Ctrl: Spotify
+bindcode $mod+Shift+201 exec --no-startup-id discord
+bindcode Ctrl+$mod+Shift+201 exec --no-startup-id spotify
+
 bindsym $mod+q kill
 bindsym $mod+f fullscreen toggle
 bindsym $mod+d exec --no-startup-id ~/.config/i3/max
