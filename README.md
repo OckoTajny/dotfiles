@@ -45,6 +45,20 @@ wallpaper included) after backing up the old ones to `~/i3-installer-backup-*.ta
 Then brrtfetch, oh-my-zsh, touchpad and gestures, the bar's GPU monitor, and
 i3 as the default login session. Safe to re-run.
 
+Run without flags it shows the status (installed or not, last run, whether newer
+configs are available) and asks what to do: **install**, **update** (upgrade
+packages, add new ones, list changed configs and ask before applying),
+**doctor** (read-only check of packages, configs, session, services) or
+**uninstall** (removes what it set up, offers to restore your old configs).
+Skip the menu with `--install`, `--update`, `--doctor` or `--uninstall`:
+
+```sh
+curl -fsSL solta.tech/install/i3 | bash -s -- --doctor
+```
+
+While it works, a live line shows the current step, elapsed time and the
+command's latest output; everything goes to `~/.cache/i3-installer.log`.
+
 Low battery in i3 shows a notification. The installer asks whether you want a
 fullscreen blinking alert instead (or pass `--battery-alert`); it flashes up to
 3 times a second, so skip it if flashing light bothers you. Super+Shift+B
