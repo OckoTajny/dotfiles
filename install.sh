@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dotswap installer – clone the rice profiles + tools onto a fresh machine.
 # Usage: curl -fsSL solta.tech/install | bash
-#        curl -fsSL solta.tech/install/i3 | bash     (just the i3 session, --i3)
+#        curl -fsSL solta.tech/install/i3 | bash     (just the i3 session: install-i3.sh)
 #        curl -fsSL solta.tech/install/niri | bash   (just niri + Ambxst, --niri)
 #   (solta.tech/install redirects to raw.githubusercontent.com/OckoTajny/dotfiles/installer/install.sh)
 #
@@ -35,20 +35,20 @@ has_tty() { { : </dev/tty; } 2>/dev/null; }
 # unattended script should gamble on.
 MODE=install
 MODE_EXPLICIT=0
-# EDITION: full (every rice), i3 (only the X11 i3 session) or niri (niri + Ambxst).
+# EDITION: full (every rice) or niri (niri + Ambxst). The i3 session has its own
+# standalone installer, install-i3.sh.
 EDITION=full
 BATTERY_ALERT=0
 for a in "$@"; do
   case "$a" in
-    --i3|i3) EDITION=i3 ;;
     --niri|niri) EDITION=niri ;;
     --battery-alert) BATTERY_ALERT=1 ;;
     --update|update|-u) MODE=update; MODE_EXPLICIT=1 ;;
     --doctor|doctor|--diagnose|diagnose) MODE=doctor; MODE_EXPLICIT=1 ;;
     --uninstall|uninstall) MODE=uninstall; MODE_EXPLICIT=1 ;;
     --help|-h)
-      echo "Usage: install.sh [--i3|--niri] [--battery-alert] [--update|--doctor|--uninstall]"
-      echo "  --i3        only the i3 (X11) session: its packages + configs, no Hyprland rices"
+      echo "Usage: install.sh [--niri] [--battery-alert] [--update|--doctor|--uninstall]"
+      echo "  (just i3: install-i3.sh, curl -fsSL solta.tech/install/i3 | bash)"
       echo "  --niri      only niri + the Ambxst shell, no Hyprland rices or i3"
       echo "  --battery-alert  i3: fullscreen blinking low-battery alert instead of a notification"
       echo "  (no flag)   asks interactively (install/update/doctor/uninstall) if run in a terminal"
@@ -130,17 +130,10 @@ OPTIONAL_APPS=(
 )
 
 # Editions trim the package set and the profiles to what that session needs.
-I3_PKGS=(i3-wm i3status i3lock xss-lock rofi dunst maim xclip autorandr arandr xcape touchegg picom
-  feh xorg-xinput xorg-xrandr wireplumber pipewire pavucontrol playerctl brightnessctl jq bc
-  kitty fastfetch btop ttf-jetbrains-mono-nerd zsh neovim nodejs npm lazygit pacman-contrib)
 NOT_NIRI=" hyprland hypridle hyprlock hyprpicker hyprshot i3-wm i3status i3lock xss-lock maim xclip
   autorandr arandr xcape touchegg picom feh xorg-xinput xorg-xrandr waybar awww gammastep nvtop
   papirus-icon-theme "
 case "$EDITION" in
-  i3)
-    CORE_PKGS=("${I3_PKGS[@]}"); AUR_PKGS=()
-    # every profile branch carries ~/.config/i3; only the i3 session's files get applied (step 6)
-    PROFILES=(niri); DEFAULT_PROFILE=niri ;;
   niri)
     drop=" $(echo $NOT_NIRI) "   # newlines -> single spaces, so " pkg " matches
     kept=(); for p in "${CORE_PKGS[@]}"; do [[ $drop == *" $p "* ]] || kept+=("$p"); done
@@ -148,7 +141,7 @@ case "$EDITION" in
     PROFILES=(niri); DEFAULT_PROFILE=niri ;;
 esac
 # what the login screen should default to
-declare -A SESSION_OF=( [full]=hyprland [i3]=i3 [niri]=niri )
+declare -A SESSION_OF=( [full]=hyprland [niri]=niri )
 
 FAILS=()
 
@@ -514,7 +507,6 @@ if [ "$MODE" != doctor ] && [ "$EDITION" = full ] && need papirus-folders; then
     || warn "papirus-folders -C white failed (43pr folder icons stay default)"
 fi
 
-if [ "$EDITION" != i3 ]; then  # Ambxst: not part of the i3 session
 # Ambxst shell (ambxst rice's bar/dock) – not a package, has its own installer.
 # The tracked hyprland.conf already has `source = ~/.local/share/ambxst/hyprland.conf`,
 # so without this, Hyprland loads fine but no bar/dock ever appears.
@@ -632,7 +624,6 @@ EOF
     && ok "Ambxst started via systemd --user (autostarts on future logins)" \
     || warn "couldn't enable ambxst.service – run: systemctl --user enable --now ambxst.service"
 fi
-fi  # EDITION != i3 (Ambxst)
 
 # optional desktop apps the keybinds launch – the user chooses which to install
 printf '   %sApps (keybind targets) – optional%s\n' "$DIM" "$R"
@@ -761,7 +752,6 @@ for p in "${PROFILES[@]}"; do
   fi
 done
 
-if [ "$EDITION" != i3 ]; then  # dotswap tools, dictation, sudo toggle: not used by the i3 session
 # 4. install the dotswap tools + voice-to-text ---------------------------------
 say "Installing dotswap tools"
 mkdir -p "$BIN"
@@ -954,8 +944,6 @@ HELPER_EOF
   rm -f "$helper_tmp" "$rule_tmp"
 fi
 
-fi  # EDITION != i3 (steps 4 to 4b)
-
 if [ "$EDITION" != niri ]; then  # i3 session extras
 # 4c. i3 bar GPU load ------------------------------------------------------------
 # The i3 bar reads Intel GPU busy % and watts from intel_gpu_top, which needs
@@ -1094,14 +1082,6 @@ case ":$PATH:" in
 esac
 if [ "$MODE" = update ]; then
   ok "update mode – your ${B}~/.config${R} was left untouched (keybinds & tweaks kept)"
-elif [ "$EDITION" = i3 ]; then
-  # only the files the i3 session uses, straight from the profile source (no dotswap)
-  src="$SRC_BASE/chezmoi-$DEFAULT_PROFILE"
-  mkdir -p "$HOME/.config"   # chezmoi won't create the parent of a target it's told to apply
-  chezmoi apply --force --source "$src" \
-    "$HOME/.config/i3" "$HOME/.config/kitty" "$HOME/.config/nvim" "$HOME/.config/btop" \
-    "$HOME/.config/fastfetch" "$HOME/.config/lazygit" "$HOME/.zshrc" \
-    && ok "applied the i3 session configs" || fail "apply i3 configs from $src"
 elif [ -x "$BIN/dotswap" ] && [ -d "$SRC_BASE/chezmoi-$DEFAULT_PROFILE" ]; then
   "$BIN/dotswap" use "$DEFAULT_PROFILE" && ok "applied default profile: ${B}${DEFAULT_PROFILE}${R}" \
     || fail "apply profile $DEFAULT_PROFILE"
@@ -1114,10 +1094,7 @@ echo
 printf '%s%sreboot or re-login recommended%s – the default-shell change above only takes\n' "$YEL" "$B" "$R"
 printf '  effect after that; %shyprctl reload%s (printed above) only refreshes the\n' "$B" "$R"
 printf '  compositor for rice switches, not this first-time setup.\n\n'
-if [ "${#FAILS[@]}" -eq 0 ] && [ "$EDITION" = i3 ]; then
-  printf '%s%s✓ all done.%s pick %si3%s on the login screen, %sSuper+Shift+Escape%s lists every keybind\n\n' \
-    "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
-elif [ "${#FAILS[@]}" -eq 0 ]; then
+if [ "${#FAILS[@]}" -eq 0 ]; then
   printf '%s%s✓ all done.%s cycle rices with %sCtrl+Shift+Super+Left/Right%s, or %sdotswap use <profile>%s\n\n' \
     "$GRN" "$B" "$R" "$B" "$R" "$B" "$R"
 else

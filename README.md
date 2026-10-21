@@ -36,16 +36,22 @@ curl -fsSL solta.tech/install/i3 | bash     # only the i3 (X11) session
 curl -fsSL solta.tech/install/niri | bash   # only niri + the Ambxst shell
 ```
 
-Same `install.sh`, run with `--i3` / `--niri` (`install-i3.sh`, `install-niri.sh`).
-The i3 edition installs just the i3 packages and applies only the files the
-session uses (`~/.config/{i3,kitty,nvim,btop,fastfetch,lazygit}`, `~/.zshrc`),
-no Hyprland, Ambxst or dotswap tools. The niri edition skips the Hyprland
-rices and i3. Either way the login screen defaults to that session.
+**i3** has its own standalone installer, `install-i3.sh`: no Hyprland, niri
+or dotswap. It installs the session's packages (asks which apps the binds open:
+Zen, Nautilus, Discord, Spotify, IntelliJ), clones the dotfiles to
+`~/.local/share/i3-dotfiles` and applies only what the session uses
+(`~/.config/{i3,kitty,nvim,btop,fastfetch,lazygit,touchegg}`, `~/.zshrc`,
+wallpaper included) after backing up the old ones to `~/i3-installer-backup-*.tar.gz`.
+Then brrtfetch, oh-my-zsh, touchpad and gestures, the bar's GPU monitor, and
+i3 as the default login session. Safe to re-run.
 
-Low battery in i3 shows a notification. During install you can opt in to a
+Low battery in i3 shows a notification. The installer asks whether you want a
 fullscreen blinking alert instead (or pass `--battery-alert`); it flashes up to
 3 times a second, so skip it if flashing light bothers you. Super+Shift+B
 switches between the two any time.
+
+**niri** is `install.sh --niri` (`install-niri.sh`): the full installer minus
+the Hyprland rices and i3.
 
 ### Updating
 
