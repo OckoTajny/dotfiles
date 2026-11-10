@@ -1,0 +1,12 @@
+#!/bin/sh
+# Super+V: clipboard history picker (X11), same rofi look as the rest of i3.
+# The niri/Wayland equivalent is cliphist + fuzzel.
+# rofi 2.0 leaves its global pidfile behind when the caller exits first, which then
+# blocks the next rofi ("Rofi already running?") - use a private one and clean it up.
+pidfile="${XDG_RUNTIME_DIR:-/tmp}/rofi-clip-$$.pid"
+trap 'rm -f "$pidfile"' EXIT
+sel=$(clipcatctl list | rofi -dmenu -i -p clipboard -pid "$pidfile" \
+  -theme ~/.config/i3/rofi.rasi \
+  -theme-str 'window { width: 760px; } listview { lines: 20; }')
+[ -n "$sel" ] || exit 0
+clipcatctl promote "${sel%%:*}" >/dev/null 2>&1
