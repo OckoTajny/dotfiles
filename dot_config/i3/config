@@ -22,6 +22,7 @@ exec_always --no-startup-id feh --no-fehbg --bg-fill ~/Pictures/Wallpapers/i3.jp
 exec --no-startup-id picom --config /dev/null --backend glx --vsync
 exec --no-startup-id dunst -config ~/.config/i3/dunstrc
 exec --no-startup-id nm-applet
+exec --no-startup-id clipcatd
 exec --no-startup-id xss-lock -- i3lock -n -c 000000
 exec --no-startup-id ~/.config/i3/battery
 exec --no-startup-id ~/.config/i3/gpu
@@ -34,9 +35,13 @@ bindsym $mod+w exec zen-browser
 bindsym $mod+e exec nautilus
 bindsym $mod+b exec $term -e btop
 bindsym $mod+r exec $rofi -show drun
+bindsym $mod+v exec --no-startup-id ~/.config/i3/clipboard
 bindsym $mod+space exec --no-startup-id ~/.config/i3/kb
 bindsym --release Print exec --no-startup-id ~/.config/i3/shot
 bindsym --release $mod+Shift+s exec --no-startup-id ~/.config/i3/shot
+# dictation: Super+Z on cz / Super+Y on us (keycode 29, same physical key as niri/Hyprland), Super+Shift = slower large-v3 (Whisper on Vulkan)
+bindcode $mod+29 exec --no-startup-id env VOICE_TO_TEXT_ENGINE=ctranslate2 VOICE_TO_TEXT_LANG=cs VOICE_TO_TEXT_MODEL=small ~/.local/bin/voice-to-text
+bindcode $mod+Shift+29 exec --no-startup-id env VOICE_TO_TEXT_ENGINE=whispercpp VOICE_TO_TEXT_LANG=cs ~/.local/bin/voice-to-text large-v3
 
 # Fn keys (volume, mic, brightness, touchpad, display), media keys
 bindsym XF86AudioRaiseVolume exec --no-startup-id ~/.config/i3/fn vol+
@@ -49,7 +54,7 @@ bindsym XF86TouchpadToggle exec --no-startup-id ~/.config/i3/fn touchpad
 # MSI Modern 15: the touchpad key sends Ctrl+Super+TouchpadToggle, the display key Super+P
 bindsym Ctrl+$mod+XF86TouchpadToggle exec --no-startup-id ~/.config/i3/fn touchpad
 bindsym XF86Display exec --no-startup-id ~/.config/i3/fn display
-bindsym $mod+p exec --no-startup-id ~/.config/i3/fn display
+bindsym $mod+p exec --no-startup-id ~/.local/bin/sudo-passwd-toggle
 bindsym XF86RotateWindows exec --no-startup-id ~/.config/i3/fn rotate
 bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
 bindsym XF86AudioNext exec --no-startup-id playerctl next
