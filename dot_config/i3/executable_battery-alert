@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-# Fullscreen blinking low-battery alert: rainbow at full brightness, worse every % lower.
+# Fullscreen blinking low-battery alert: random colors, shaking mega-warnings.
 # Click to hide; closes itself once the charger is in. BATTERY_DIR overrides the battery (for testing).
 import colorsys
 import glob
 import os
+import random
 import signal
 import subprocess
 import tkinter as tk
@@ -21,14 +22,35 @@ def text(bg):
     return "#000000" if .299 * r + .587 * g + .114 * b > .55 else "#ffffff"
 
 
-# 20 blocks of 10: each block is a full hue wheel, alternating bright and deep shades.
-# 20% uses the first block, every 1% lower adds another whole block, all 200 colors by 1%.
+# 20 blocks of 10 hue-wheel colors, alternating bright and deep shades, then shuffled:
+# 20% uses the first 10 random colors, every 1% lower adds 10 more, all 200 by 1%.
 COLORS = []
 for _block in range(20):
     for _slot in range(10):
         _bg = rgb(_slot / 10 + _block / 200, 1, 1 if _block % 2 == 0 else .55)
         COLORS.append((_bg, text(_bg)))
+random.shuffle(COLORS)
 FONT = "JetBrainsMono Nerd Font"
+
+BIG_TEXT = (
+    "⚠ BATTERY {cap}% ⚠",
+    "PLUG IN\nTHE CHARGER",
+    "!! LOW\nPOWER !!",
+    "CHARGER\nNOW",
+    "⚠ {cap}%\n⚠ {cap}% ⚠",
+    "SYSTEM\nCRITICAL",
+    "DO NOT\nIGNORE",
+    "BATTERY\nDYING",
+    "!! {cap}% !!\nCHARGE IT",
+)
+SMALL_TEXT = (
+    "PLUG IN THE CHARGER · CLICK TO HIDE",
+    "⚠  ⚠  ⚠   DO NOT IGNORE   ⚠  ⚠  ⚠",
+    "BATTERY DYING — CHARGER, NOW",
+    "THIS IS YOUR FINAL WARNING · CLICK TO HIDE",
+    "!!! PLUG IT IN !!!",
+    "CHARGER · CHARGER · CHARGER · CLICK TO HIDE",
+)
 
 
 def read(name):
@@ -41,10 +63,14 @@ root.overrideredirect(True)
 root.attributes("-topmost", True)
 w, h = root.winfo_screenwidth(), root.winfo_screenheight()
 root.geometry(f"{w}x{h}+0+0")
-big = tk.Label(root, font=(FONT, -(h // 4), "bold"))
-small = tk.Label(root, font=(FONT, -(h // 16), "bold"), text="PLUG IN THE CHARGER, click to hide")
-big.pack(expand=True, fill="both")
-small.pack(fill="x", ipady=h // 20)
+frame = tk.Frame(root, highlightthickness=max(10, h // 70))
+frame.pack(fill="both", expand=True)
+top = tk.Label(frame, font=(FONT, -(h // 24), "bold"))
+small = tk.Label(frame, font=(FONT, -(h // 16), "bold"), wraplength=int(w * .92))
+big = tk.Label(frame, font=(FONT, -(h // 4), "bold"), justify="center", wraplength=int(w * .92))
+top.pack(fill="x")
+small.pack(side="bottom", fill="x", ipady=h // 20)
+big.place(relx=.5, rely=.5, anchor="center")
 tick = 0
 
 # full brightness while it's up, restored on close
@@ -80,14 +106,29 @@ def blink():
         close()
         return
     cap = int(read("capacity"))
-    big["text"] = f"BATTERY {cap}%"
     # 20% -> 10 colors, every 1% lower adds 10 more, all 200 by 1%
     colors = COLORS[: min(len(COLORS), 10 * max(21 - cap, 1))]
     bg, fg = colors[tick % len(colors)]
     tick += 1
-    for widget in (root, big, small):
+
+    # one background color at a time, but the text and layout go nuts
+    big["text"] = random.choice(BIG_TEXT).format(cap=cap)
+    small["text"] = random.choice(SMALL_TEXT)
+    top["text"] = random.choice((
+        "WARNING",
+        "!!! WARNING !!!",
+        "LOW BATTERY",
+        " ".join(random.choice(("⚠", "!", "⚡", "☠")) for _ in range(random.randint(3, 9))),
+    ))
+    big["font"] = random.choice(((FONT, -(h // 4), "bold"), (FONT, -(h // 5), "bold"), (FONT, -(h // 6), "bold")))
+    big["justify"] = random.choice(("left", "center", "right"))
+    for widget in (root, frame, top, big, small):
         widget["bg"] = bg
-    big["fg"] = small["fg"] = fg
+    for widget in (top, big, small):
+        widget["fg"] = fg
+    frame["highlightbackground"] = frame["highlightcolor"] = fg
+    # shake the huge text around
+    big.place_configure(relx=.5 + random.uniform(-.02, .02), rely=.5 + random.uniform(-.015, .015))
     # one color on screen at a time, a new one every 0.1 s (as requested)
     root.after(100, blink)
 
