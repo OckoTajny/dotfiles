@@ -1,6 +1,6 @@
-// kb-cancel +Super+r: xcape turns a lone Super tap into Super+r; while a rofi menu
+// kb-cancel +Super+r/R (R = with Shift held): xcape turns a lone Super tap into Super+r; while a rofi menu
 // holds the keyboard grab it would type "r", this closes the menu instead
-configuration { kb-cancel: "Escape,Control+g,Control+bracketleft,Super+r"; }
+configuration { kb-cancel: "Escape,Control+g,Control+bracketleft,Super+r,Super+R"; }
 
 * {
   font: "JetBrainsMono Nerd Font 11";
