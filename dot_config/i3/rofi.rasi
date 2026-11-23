@@ -1,3 +1,7 @@
+// kb-cancel +Super+r: xcape turns a lone Super tap into Super+r; while a rofi menu
+// holds the keyboard grab it would type "r", this closes the menu instead
+configuration { kb-cancel: "Escape,Control+g,Control+bracketleft,Super+r"; }
+
 * {
   font: "JetBrainsMono Nerd Font 11";
   background-color: transparent;

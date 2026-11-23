@@ -34,8 +34,7 @@ bindsym $mod+i exec ~/.local/share/JetBrains/Toolbox/scripts/idea
 bindsym $mod+w exec zen-browser
 bindsym $mod+e exec nautilus
 bindsym $mod+b exec $term -e btop
-# -kb-cancel: 2nd Super tap (xcape sends Super+r into rofi's keyboard grab) closes it instead of typing r
-bindsym $mod+r exec "$rofi -show drun -kb-cancel Escape,Control+g,Control+bracketleft,Super+r"
+bindsym $mod+r exec $rofi -show drun
 bindsym $mod+v exec --no-startup-id ~/.config/i3/clipboard
 bindsym $mod+space exec --no-startup-id ~/.config/i3/kb
 bindsym --release Print exec --no-startup-id ~/.config/i3/shot
